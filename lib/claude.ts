@@ -1,0 +1,21 @@
+import "server-only";
+import Anthropic from "@anthropic-ai/sdk";
+import { ConfigError } from "./supabase";
+
+// O protótipo usava claude-sonnet-4-6; troque por ANTHROPIC_MODEL na Vercel sem mexer no código.
+export const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+
+let client: Anthropic | null = null;
+
+export async function generate(system: string, prompt: string, maxTokens: number): Promise<string> {
+  if (!process.env.ANTHROPIC_API_KEY) throw new ConfigError("ANTHROPIC_API_KEY não configurada.");
+  client ??= new Anthropic();
+  // Streaming evita timeout HTTP em respostas longas; finalMessage() junta tudo.
+  const msg = await client.messages
+    .stream({ model: MODEL, max_tokens: maxTokens, system, messages: [{ role: "user", content: prompt }] })
+    .finalMessage();
+  if (msg.stop_reason === "refusal") throw new Error("A IA recusou este pedido. Ajuste o prompt e tente de novo.");
+  const text = msg.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim();
+  if (!text) throw new Error("A IA não devolveu texto.");
+  return msg.stop_reason === "max_tokens" ? text + "\n\n[⚠ Resposta cortada pelo limite de tamanho — regenere ou divida o pedido.]" : text;
+}
