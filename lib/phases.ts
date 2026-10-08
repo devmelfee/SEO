@@ -7,6 +7,9 @@ export type FormData = {
   city?: string;
   pricing?: string;
   goal?: string;
+  /** Vindo de Configurações → Comercial (não é por cliente). */
+  monthlyPrice?: string;
+  trialPrice?: string;
   /** Dados reais dos concorrentes (Google Places ou colados à mão). */
   realData?: string;
 };
@@ -69,7 +72,15 @@ export function fill(t: string, d: FormData): string {
     .replace(/\{city\}/g, d.city?.trim() || "[CIDADE]")
     .replace(/\{url\}/g, d.clientUrl?.trim() ? `Site do cliente: ${d.clientUrl.trim()}` : "")
     .replace(/\{clientName\}/g, d.clientName?.trim() || "o cliente")
-    .replace(/\{realData\}/g, d.realData?.trim() || "[SEM DADOS REAIS]");
+    .replace(/\{realData\}/g, d.realData?.trim() || "[SEM DADOS REAIS]")
+    .replace(/\{investimento\}/g, investment(d));
+}
+
+/** Texto de investimento para a proposta, a partir de Configurações → Comercial. */
+export function investment(d: FormData): string {
+  const m = d.monthlyPrice?.trim(), t = d.trialPrice?.trim();
+  if (!m && !t) return "teste de 30 dias + mensalidade (use [VALOR] onde faltar preço)";
+  return `teste de 30 dias por ${t || "[VALOR]"} + mensalidade de ${m || "[VALOR]"}`;
 }
 
 /** Motivo para bloquear a geração, ou null se pode gerar. */
@@ -117,8 +128,6 @@ export const PHASES: Phase[] = [
       { id: "clientUrl", type: "url", label: "Site ou perfil Google do cliente (opcional)", placeholder: "https://…" },
       { id: "vertical", type: "vertical", label: "Nicho / vertical", options: VERTICALS, required: true },
       { id: "city", type: "text", label: "Cidade-alvo", placeholder: "Ex: São Paulo, Lisboa, Miami…", required: true },
-      { id: "pricing", type: "select", label: "Faixa de preço por cliente/mês", options: PRICING_OPTIONS },
-      { id: "goal", type: "select", label: "Meta de clientes", options: ["20 clientes × R$ 500", "10 clientes × R$ 1.000", "7 clientes × R$ 1.500"] },
     ],
   },
   {
@@ -193,7 +202,7 @@ export const PHASES: Phase[] = [
       { label: "Proposta comercial de 1 página",
         needsRealData: true,
         system: "Você é consultor de SEO local. Propostas claras, baseadas em dados, sem jargão.",
-        prompt: `Proposta de 1 página para {clientName} ({vertical} em {city}):\n{url}\n\n${REAL_DATA_RULE}\n\nDADOS REAIS DOS CONCORRENTES:\n{realData}\n\n1. Diagnóstico: 3 problemas específicos de {clientName} frente aos concorrentes acima\n2. Solução: plano de 5 fases resumido em bullet points\n3. Resultados esperados em 30/60/90 dias (metas realistas, sem prometer posição)\n4. Investimento: teste de 30 dias + mensalidade\n5. Próximos passos: 3 ações simples para começar hoje\n\nTom direto, focado em ROI para {clientName}.` },
+        prompt: `Proposta de 1 página para {clientName} ({vertical} em {city}):\n{url}\n\n${REAL_DATA_RULE}\n\nDADOS REAIS DOS CONCORRENTES:\n{realData}\n\n1. Diagnóstico: 3 problemas específicos de {clientName} frente aos concorrentes acima\n2. Solução: plano de 5 fases resumido em bullet points\n3. Resultados esperados em 30/60/90 dias (metas realistas, sem prometer posição)\n4. Investimento: {investimento}\n5. Próximos passos: 3 ações simples para começar hoje\n\nTom direto, focado em ROI para {clientName}.` },
     ],
     tips: ["🎯 Posições 4-20 do Maps: empresas que querem e podem pagar", "📊 Mostre a auditoria grátis antes de vender", "✅ Meta: 1 fechamento a cada 3 abordagens com proposta específica"],
   },

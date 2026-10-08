@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { STATUSES, type Issue, type ProspectStatus } from "@/lib/opportunity";
 import { VERTICALS } from "@/lib/phases";
+import { REGION_PRESETS } from "@/lib/market";
 import { C, btn, input, label, primary } from "./styles";
 
 export type Prospect = {
@@ -17,6 +18,12 @@ const STATUS_LABEL: Record<ProspectStatus, string> = {
 };
 const STATUS_COLOR: Record<ProspectStatus, string> = {
   novo: C.blue, abordado: "#FBBF24", proposta: "#A78BFA", fechado: C.green, descartado: C.dim,
+};
+
+type RegionResult = {
+  niche: string;
+  results: { city: string; query: string; error?: string;
+    summary?: { total: number; noSite: number; avgReviews: number; leaderReviews: number; hot: number; opportunity: number } }[];
 };
 
 export function scoreColor(s: number) {
@@ -36,7 +43,11 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
   placesEnabled: boolean; supabaseOn: boolean;
   onCreateClient: (p: Prospect, competitors: string, vertical: string, city: string) => void;
 }) {
+  const [mode, setMode] = useState<"cidade" | "regiao">("cidade");
   const [vertical, setVertical] = useState("");
+  const [citiesText, setCitiesText] = useState("");
+  const [regionBusy, setRegionBusy] = useState(false);
+  const [region, setRegion] = useState<RegionResult | null>(null);
   const [city, setCity] = useState("");
   const [max, setMax] = useState<20 | 40 | 60>(20);
   const [busy, setBusy] = useState(false);
@@ -56,6 +67,21 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
     } catch (e) { setErr((e as Error).message); }
   };
   useEffect(() => { load(""); }, [supabaseOn]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const cityList = [...new Set(citiesText.split(/[,\n;]/).map((c) => c.trim()).filter((c) => c.length > 1))].slice(0, 12);
+  const canRegion = placesEnabled && vertical.trim().length > 1 && cityList.length > 0 && !regionBusy;
+
+  const regionSearch = async () => {
+    setRegionBusy(true); setErr(""); setRegion(null);
+    try {
+      const r = await api<RegionResult>("/api/radar/region", { body: { niche: vertical.trim(), cities: cityList } });
+      setRegion(r);
+      setQueries((q) => [...new Set([...r.results.map((x) => x.query), ...q])]);
+    } catch (e) { setErr((e as Error).message); }
+    setRegionBusy(false);
+  };
+
+  const openQuery = (query: string) => { setMode("cidade"); setActiveQuery(query); load(query); };
 
   const search = async () => {
     const query = `${vertical.trim()} em ${city.trim()}`;
@@ -91,31 +117,98 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
         <p style={{ margin: "4px 0 16px", fontSize: 13, color: C.dim }}>
           Busca empresas no Google Maps, aponta o que está faltando em cada uma e ordena da melhor oportunidade para a pior.
         </p>
+        <div role="tablist" style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+          {([["cidade", "🔎 Buscar numa cidade"], ["regiao", "🧭 Onde prospectar (comparar cidades)"]] as const).map(([m, l]) => (
+            <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
+              style={btn(mode === m ? "#7C3AED" : C.panel2, mode === m ? "#fff" : C.dim, { border: `1px solid ${mode === m ? "#7C3AED" : C.border}` })}>{l}</button>
+          ))}
+        </div>
         <div className="radar-form">
-          <div style={{ flex: 2 }}><label style={label}>Nicho</label>
-            <input list="radar-verticals" value={vertical} onChange={(e) => setVertical(e.target.value)} placeholder="Ex: Dentistas" style={input} />
+          <div style={{ flex: 2 }}><label style={label} htmlFor="radar-niche">Nicho (digite qualquer um)</label>
+            <input id="radar-niche" list="radar-verticals" value={vertical} onChange={(e) => setVertical(e.target.value)}
+              placeholder="Ex: Loja de roupa infantil, Pet shop, Dentistas…" style={input} />
             <datalist id="radar-verticals">{VERTICALS.map((v) => <option key={v} value={v} />)}</datalist>
           </div>
-          <div style={{ flex: 2 }}><label style={label}>Cidade</label>
-            <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex: Jundiaí" style={input}
-              onKeyDown={(e) => e.key === "Enter" && canSearch && search()} />
-          </div>
-          <div style={{ flex: 1 }}><label style={label}>Quantos</label>
-            <select value={max} onChange={(e) => setMax(Number(e.target.value) as 20 | 40 | 60)} style={{ ...input, cursor: "pointer" }}>
-              <option value={20}>20</option><option value={40}>40</option><option value={60}>60</option>
-            </select>
-          </div>
-          <button type="button" onClick={search} disabled={!canSearch}
-            style={btn(canSearch ? "linear-gradient(135deg,#7C3AED,#6D28D9)" : C.border, canSearch ? "#fff" : C.dim, { padding: "12px 22px", fontSize: 13, alignSelf: "flex-end" })}>
-            {busy ? "⟳ Buscando…" : "🔎 Buscar"}
-          </button>
+          {mode === "cidade" ? (
+            <>
+              <div style={{ flex: 2 }}><label style={label}>Cidade ou bairro</label>
+                <input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Ex: Jundiaí ou Vila Arens, Jundiaí" style={input}
+                  onKeyDown={(e) => e.key === "Enter" && canSearch && search()} />
+              </div>
+              <div style={{ flex: 1 }}><label style={label}>Quantos</label>
+                <select value={max} onChange={(e) => setMax(Number(e.target.value) as 20 | 40 | 60)} style={{ ...input, cursor: "pointer" }}>
+                  <option value={20}>20</option><option value={40}>40</option><option value={60}>60</option>
+                </select>
+              </div>
+              <button type="button" onClick={search} disabled={!canSearch}
+                style={btn(canSearch ? "linear-gradient(135deg,#7C3AED,#6D28D9)" : C.border, canSearch ? "#fff" : C.dim, { padding: "12px 22px", fontSize: 13, alignSelf: "flex-end" })}>
+                {busy ? "⟳ Buscando…" : "🔎 Buscar"}
+              </button>
+            </>
+          ) : (
+            <div style={{ flex: 4, minWidth: 260 }}><label style={label} htmlFor="radar-cities">Cidades ou bairros (separe por vírgula, até 12)</label>
+              <textarea id="radar-cities" value={citiesText} onChange={(e) => setCitiesText(e.target.value)} rows={2}
+                placeholder="Ex: Jundiaí, Várzea Paulista, Itupeva" style={{ ...input, resize: "vertical", fontSize: 13 }} />
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                {Object.entries(REGION_PRESETS).map(([name, list]) => (
+                  <button key={name} type="button" onClick={() => setCitiesText(list.join(", "))}
+                    style={btn(C.panel2, C.blue, { fontSize: 11, padding: "4px 10px", border: `1px solid ${C.border}` })}>+ {name}</button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+        {mode === "regiao" && (
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
+            <button type="button" onClick={regionSearch} disabled={!canRegion}
+              style={btn(canRegion ? "linear-gradient(135deg,#7C3AED,#6D28D9)" : C.border, canRegion ? "#fff" : C.dim, { padding: "12px 22px", fontSize: 13 })}>
+              {regionBusy ? `⟳ Analisando ${cityList.length} cidades…` : `🧭 Comparar ${cityList.length || ""} cidades`}
+            </button>
+            <span style={{ fontSize: 12, color: C.muted }}>Busca 20 empresas por cidade ({cityList.length * 20} no total) e salva todas como leads.</span>
+          </div>
+        )}
         {!placesEnabled && <p style={{ color: "#FCD34D", fontSize: 12, margin: "12px 0 0" }}>⚠ Busca desligada: falta GOOGLE_PLACES_API_KEY (e o faturamento ativo no Google Cloud).</p>}
         {!supabaseOn && <p style={{ color: "#FCD34D", fontSize: 12, margin: "8px 0 0" }}>⚠ Supabase desligado: os leads não serão salvos.</p>}
         {err && <p role="alert" style={{ color: C.red, fontSize: 13, margin: "12px 0 0" }}>⚠ {err}</p>}
       </div>
 
-      {(rows.length > 0 || queries.length > 0) && (
+      {mode === "regiao" && region && (
+        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
+          <h2 style={{ margin: "0 0 4px", fontSize: 15 }}>🧭 Onde prospectar: {region.niche}</h2>
+          <p style={{ margin: "0 0 14px", fontSize: 12, color: C.muted }}>
+            Índice de oportunidade (0–100): mais empresas com nota alta de oportunidade, mais empresas sem site e concorrência com menos avaliações = mais vendas possíveis e resultado mais rápido.
+          </p>
+          {region.results.map((r, i) => {
+            const s = r.summary;
+            return (
+              <div key={r.city} className="region-row" style={{ borderTop: i ? `1px solid ${C.border}` : "none" }}>
+                <strong style={{ width: 22, color: C.dim }}>{i + 1}</strong>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                    <strong style={{ fontSize: 14 }}>{r.city}</strong>
+                    {s && <strong style={{ color: scoreColor(s.opportunity), fontSize: 14 }}>{s.opportunity}</strong>}
+                  </div>
+                  {s ? (
+                    <>
+                      <div style={{ height: 6, background: C.panel2, borderRadius: 3, margin: "6px 0" }}>
+                        <div style={{ height: "100%", width: `${s.opportunity}%`, background: scoreColor(s.opportunity), borderRadius: 3 }} />
+                      </div>
+                      <div style={{ fontSize: 12, color: C.muted }}>
+                        {s.total} empresas · <span style={{ color: "#F87171" }}>{s.hot} quentes</span> · <span style={{ color: "#FBBF24" }}>{s.noSite} sem site</span> · média de {s.avgReviews} avaliações (líder: {s.leaderReviews})
+                      </div>
+                    </>
+                  ) : <div style={{ fontSize: 12, color: C.red }}>⚠ {r.error}</div>}
+                </div>
+                {s && s.total > 0 && (
+                  <button type="button" onClick={() => openQuery(r.query)} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>Ver leads →</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {mode === "cidade" && (rows.length > 0 || queries.length > 0) && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
           {queries.length > 0 && (
             <select aria-label="Busca" value={activeQuery} onChange={(e) => { setActiveQuery(e.target.value); load(e.target.value); }}
@@ -138,7 +231,7 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
         </div>
       )}
 
-      {visible.map((p) => {
+      {mode === "cidade" && visible.map((p) => {
         const st = p.status ?? "novo";
         const isOpen = open === p.place_id;
         return (
@@ -197,9 +290,9 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
         );
       })}
 
-      {!rows.length && !busy && (
+      {mode === "cidade" && !rows.length && !busy && (
         <div style={{ textAlign: "center", padding: "48px 20px", color: C.dim, fontSize: 13 }}>
-          Faça uma busca para encontrar empresas com perfil fraco no Google Maps.
+          Faça uma busca para encontrar empresas com perfil fraco no Google Maps. Não sabe por qual cidade começar? Use 🧭 Onde prospectar.
         </div>
       )}
     </div>

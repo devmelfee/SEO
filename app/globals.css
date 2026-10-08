@@ -31,3 +31,4 @@ summary::-webkit-details-marker { display: none; }
   .tabs { margin-left: 0; }
   .prospect-detail { padding-left: 16px !important; }
 }
+.region-row { display: flex; gap: 12px; align-items: center; padding: 12px 0; }

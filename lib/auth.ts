@@ -1,53 +1,40 @@
-// Sessão por senha compartilhada da equipe. Cookie = HMAC-SHA256(SESSION_SECRET, "seo-session:" + expira).
-// Usa Web Crypto para funcionar tanto no middleware (Edge) quanto nas rotas (Node).
+// Login individual por e-mail e senha (Supabase Auth). Quem pode entrar: e-mails da tabela team_members.
+// O primeiro usuário confirmado vira administrador (tabela vazia = instalação nova).
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { db } from "./supabase";
 
-export const SESSION_COOKIE = "seo_session";
-const MAX_AGE_S = 60 * 60 * 24 * 14; // 14 dias
-
-const enc = new TextEncoder();
-
-function secret(): string | null {
-  const s = process.env.SESSION_SECRET || process.env.APP_PASSWORD;
-  return s ? s : null;
-}
+export type Role = "admin" | "member";
 
 export function authConfigured(): boolean {
-  return !!process.env.APP_PASSWORD;
+  return !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY);
 }
 
-async function hmac(data: string, key: string): Promise<string> {
-  const k = await crypto.subtle.importKey("raw", enc.encode(key), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("HMAC", k, enc.encode(data));
-  return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, "0")).join("");
+/** URL e chave pública (anon) — podem ir para o navegador; a RLS sem políticas impede leitura das tabelas. */
+export function publicAuthConfig() {
+  return { url: process.env.SUPABASE_URL ?? "", anonKey: process.env.SUPABASE_ANON_KEY ?? "" };
 }
 
-function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let r = 0;
-  for (let i = 0; i < a.length; i++) r |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return r === 0;
+type CookieStore = {
+  getAll(): { name: string; value: string }[];
+  setAll(c: { name: string; value: string; options: CookieOptions }[]): void;
+};
+
+export function authClient(cookies: CookieStore) {
+  const { url, anonKey } = publicAuthConfig();
+  return createServerClient(url, anonKey, { cookies });
 }
 
-export async function createSessionToken(): Promise<{ value: string; maxAge: number }> {
-  const key = secret();
-  if (!key) throw new Error("APP_PASSWORD não configurada");
-  const exp = Math.floor(Date.now() / 1000) + MAX_AGE_S;
-  return { value: `${exp}.${await hmac(`seo-session:${exp}`, key)}`, maxAge: MAX_AGE_S };
-}
-
-export async function verifySessionToken(token: string | undefined): Promise<boolean> {
-  const key = secret();
-  if (!key || !token) return false;
-  const [expStr, sig] = token.split(".");
-  const exp = Number(expStr);
-  if (!exp || !sig || exp < Date.now() / 1000) return false;
-  return safeEqual(sig, await hmac(`seo-session:${exp}`, key));
-}
-
-export async function passwordMatches(input: string): Promise<boolean> {
-  const pw = process.env.APP_PASSWORD;
-  if (!pw) return false;
-  // Compara os HMACs (mesmo tamanho) para não vazar o tamanho da senha pelo tempo.
-  const k = "seo-pw-compare";
-  return safeEqual(await hmac(input, k), await hmac(pw, k));
+/** Papel do e-mail na equipe, ou null se não tem acesso. Bootstrap: equipe vazia → primeiro vira admin. */
+export async function membership(email: string | undefined | null): Promise<Role | null> {
+  if (!email) return null;
+  const e = email.toLowerCase();
+  const { data, error } = await db().from("team_members").select("role").eq("email", e).maybeSingle();
+  if (error) throw new Error("Equipe: " + error.message);
+  if (data) return data.role as Role;
+  const { count } = await db().from("team_members").select("email", { count: "exact", head: true });
+  if (count === 0) {
+    const { error: insErr } = await db().from("team_members").insert({ email: e, role: "admin", added_by: "primeiro acesso" });
+    if (!insErr) return "admin";
+  }
+  return null;
 }

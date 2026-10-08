@@ -136,3 +136,20 @@ create table if not exists public.prospects (
 create index if not exists prospects_score_idx on public.prospects (score desc);
 create index if not exists prospects_query_idx on public.prospects (query);
 alter table public.prospects enable row level security;
+
+-- ── market_snapshots (Radar › Onde prospectar: retrato de cada nicho × cidade) ─
+create table if not exists public.market_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  niche text not null,
+  city text not null,
+  query text not null,
+  total int default 0,
+  no_site int default 0,
+  avg_reviews numeric default 0,
+  leader_reviews int default 0,
+  hot int default 0,
+  opportunity int default 0,
+  created_at timestamptz default now()
+);
+create index if not exists market_snapshots_niche_idx on public.market_snapshots (niche, created_at desc);
+alter table public.market_snapshots enable row level security;

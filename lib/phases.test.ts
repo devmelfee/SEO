@@ -49,3 +49,9 @@ test("formatPlaces", () => {
   assert.match(out, /Avaliações: 10 · Nota: 4.5/);
   assert.match(out, /Tipos: plumber$/m);
 });
+
+test("investimento vem das configurações", async () => {
+  const { investment } = await import("./phases.ts");
+  assert.match(investment({}), /\[VALOR\]/);
+  assert.equal(investment({ monthlyPrice: "R$ 1.000", trialPrice: "R$ 500" }), "teste de 30 dias por R$ 500 + mensalidade de R$ 1.000");
+});

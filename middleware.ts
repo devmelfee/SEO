@@ -1,24 +1,41 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, authConfigured, verifySessionToken } from "@/lib/auth";
+import { authClient, authConfigured, membership } from "@/lib/auth";
 
-const PUBLIC = ["/login", "/api/login", "/api/status"];
+// Páginas e rotas que não exigem login.
+const PUBLIC = ["/login", "/cadastro", "/recuperar", "/auth/callback", "/api/status"];
+// Exigem login, mas não fazer parte da equipe (trocar senha, aviso de acesso pendente).
+const LOGGED_ONLY = ["/nova-senha", "/sem-acesso", "/api/logout"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC.includes(pathname)) return NextResponse.next();
-
   const isApi = pathname.startsWith("/api/");
+  const deny = (status: number, message: string, to: string) =>
+    isApi ? NextResponse.json({ error: { message } }, { status }) : NextResponse.redirect(new URL(to, req.url));
+
   if (!authConfigured()) {
-    // Sem senha configurada nada que gaste IA ou toque no banco fica exposto.
-    return isApi
-      ? NextResponse.json({ error: { message: "APP_PASSWORD não configurada na Vercel." } }, { status: 503 })
-      : NextResponse.redirect(new URL("/login", req.url));
+    if (PUBLIC.includes(pathname)) return NextResponse.next();
+    return deny(503, "Login não configurado (SUPABASE_URL / SUPABASE_ANON_KEY).", "/login");
   }
 
-  if (await verifySessionToken(req.cookies.get(SESSION_COOKIE)?.value)) return NextResponse.next();
-  return isApi
-    ? NextResponse.json({ error: { message: "Sessão expirada. Entre novamente." } }, { status: 401 })
-    : NextResponse.redirect(new URL("/login", req.url));
+  // Padrão @supabase/ssr: renova a sessão e repassa os cookies atualizados.
+  let res = NextResponse.next({ request: req });
+  const supabase = authClient({
+    getAll: () => req.cookies.getAll(),
+    setAll: (list) => {
+      list.forEach(({ name, value }) => req.cookies.set(name, value));
+      res = NextResponse.next({ request: req });
+      list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));
+    },
+  });
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (PUBLIC.includes(pathname)) return res;
+  if (!user) return deny(401, "Sessão expirada. Entre novamente.", `/login?next=${encodeURIComponent(pathname)}`);
+  if (LOGGED_ONLY.includes(pathname)) return res;
+
+  const role = await membership(user.email).catch(() => null);
+  if (!role) return deny(403, "Seu e-mail ainda não foi liberado pelo administrador.", "/sem-acesso");
+  return res;
 }
 
 export const config = { matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"] };

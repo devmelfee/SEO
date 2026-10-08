@@ -173,6 +173,8 @@ export default function SeoApp() {
   };
 
   const phase = PHASES[activePhase];
+  // Preços vêm de Configurações → Comercial e entram nos prompts como {investimento}.
+  const promptData: FormData = { ...formData, monthlyPrice: settings.monthly_price, trialPrice: settings.trial_price };
   const progress = Math.round((completed.length / PHASES.length) * 100);
   const resultCount = Object.values(results).filter((r) => r.content.trim()).length;
   const clientLabel = formData.clientName || formData.vertical;
@@ -285,7 +287,7 @@ export default function SeoApp() {
                 <RealDataPanel formData={formData} onChange={(v) => updateField("realData", v)} placesEnabled={!!status?.places} clientId={clientId} />
               )}
               {phase.parts!.map((part) => (
-                <PromptCard key={part.label} part={part} formData={formData} color={phase.color} saved={results[part.label]} aiEnabled={!!status?.anthropic}
+                <PromptCard key={part.label} part={part} formData={promptData} color={phase.color} saved={results[part.label]} aiEnabled={!!status?.anthropic}
                   onGenerated={onGenerated} onEdited={onEdited} />
               ))}
               {phase.tips && (
@@ -331,7 +333,7 @@ export default function SeoApp() {
 }
 
 function applyDefaults(p: FormData, s: Agency): FormData {
-  return { ...p, vertical: p.vertical || s.default_vertical || "", city: p.city || s.default_city || "", pricing: p.pricing || s.default_pricing || "" };
+  return { ...p, vertical: p.vertical || s.default_vertical || "", city: p.city || s.default_city || "" };
 }
 
 function SetupForm({ phase, formData, onUpdate }: { phase: Phase; formData: FormData; onUpdate: (k: keyof FormData, v: string) => void }) {

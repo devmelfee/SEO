@@ -15,8 +15,11 @@ const Settings = z.object({
   default_vertical: z.string().max(200).optional().default(""),
   default_city: z.string().max(200).optional().default(""),
   default_pricing: z.string().max(200).optional().default(""),
+  monthly_price: z.string().max(50).optional().default(""),
+  trial_price: z.string().max(50).optional().default(""),
+  client_goal: z.coerce.number().int().min(0).max(10000).nullable().optional(),
 });
-const COLS = "name,consultant,email,whatsapp,currency,default_vertical,default_city,default_pricing";
+const COLS = "name,consultant,email,whatsapp,currency,default_vertical,default_city,default_pricing,monthly_price,trial_price,client_goal";
 
 export async function GET() {
   try {

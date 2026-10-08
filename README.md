@@ -10,9 +10,13 @@ do Google Maps → textos do perfil → avaliações → calendário de conteúd
 1. **Banco:** no Supabase (projeto `bebjswervqdokkhpggro`) → SQL Editor → cole `supabase/setup.sql` → Run.
    O script é idempotente: pode rodar de novo sem quebrar nada.
 2. **Credenciais:** na Vercel → projeto → Settings → Environment Variables, cadastre as variáveis de
-   [`.env.example`](.env.example). As obrigatórias são `APP_PASSWORD`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`,
-   `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. `GOOGLE_PLACES_API_KEY` liga a busca automática de concorrentes.
-3. **Redeploy** (Deployments → ⋯ → Redeploy). Variáveis novas só valem depois disso.
+   [`.env.example`](.env.example): `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+   `GOOGLE_PLACES_API_KEY` e, opcional, `ANTHROPIC_API_KEY`.
+3. **Login:** no Supabase → Authentication → URL Configuration, coloque o endereço do app em *Site URL* e
+   `https://SEU-APP.vercel.app/**` em *Redirect URLs* (senão os e-mails de confirmação e de nova senha apontam
+   para o lugar errado). A primeira pessoa que criar conta e confirmar o e-mail vira **administradora** e libera
+   os demais em ⚙️ → Equipe.
+4. **Redeploy** (Deployments → ⋯ → Redeploy). Variáveis novas só valem depois disso.
 
 No app, ⚙️ → **Conexões** mostra o que está ligado (sem nunca exibir as chaves).
 
@@ -29,7 +33,8 @@ npm run build                # o mesmo build da Vercel
 ## Segurança
 
 - Todas as chaves ficam **só no servidor** (variáveis da Vercel). O navegador nunca vê nenhuma.
-- O app inteiro exige a senha da equipe (`APP_PASSWORD`). Sem ela configurada, as rotas de API ficam bloqueadas.
+- Login individual por e-mail e senha (Supabase Auth), com confirmação por e-mail e recuperação de senha.
+  Só entra quem está em ⚙️ → Equipe (tabela `team_members`).
 - As tabelas têm RLS ligada e sem políticas: só o servidor (service_role) lê e grava.
 
 ## Estrutura
@@ -40,4 +45,5 @@ npm run build                # o mesmo build da Vercel
 | `components/` | Interface (SeoApp, PromptCard, modais) |
 | `app/api/` | Rotas do servidor: `generate` (IA), `clients`, `settings`, `places`, `login`, `status` |
 | `supabase/setup.sql` | Schema completo do banco |
-| `middleware.ts` | Login da equipe |
+| `middleware.ts` | Login (sessão Supabase) e controle de acesso pela equipe |
+| `lib/opportunity.ts`, `lib/market.ts` | Nota de oportunidade por empresa e índice de oportunidade por cidade |
