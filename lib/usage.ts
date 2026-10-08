@@ -1,7 +1,8 @@
 import "server-only";
 import { db, supabaseConfigured } from "./supabase";
 import { check, LimitError } from "./http";
-import { allowance, mergeLimits, meters, WEEK_MS, type Limits, type Meters, type Resource, type UsageEvent } from "./limits";
+import { allowance, mergeLimits, meters, modelInfo, WEEK_MS, type AiUse, type Limits, type Meters, type Resource, type UsageEvent } from "./limits";
+import { MODEL } from "./claude";
 
 const SETTINGS_ID = "00000000-0000-0000-0000-000000000001";
 /** Custo de uma chamada ao Text Search com telefone/site/nota/horário (SKU Enterprise). Ajuste por env. */
@@ -58,6 +59,14 @@ export async function guard(me: Me | null, kind: Resource, needed: number) {
     `Limite de ${what} ${period} atingido (restam ${r.left}, este pedido usa ${needed}).${fmtReset(r.resetAt)} Peça mais ao administrador.`,
     r.resetAt,
   );
+}
+
+/** Modelo escolhido pelo administrador para textos ou sites (padrão: ANTHROPIC_MODEL ou Equilibrado). */
+export async function aiModel(use: AiUse): Promise<string> {
+  if (!supabaseConfigured()) return MODEL;
+  const { data } = await db().from("agency_settings").select("ai_model_text,ai_model_site").eq("id", SETTINGS_ID).maybeSingle();
+  const chosen = use === "site" ? data?.ai_model_site : data?.ai_model_text;
+  return chosen && modelInfo(chosen) ? chosen : MODEL;
 }
 
 export type UsageRecord = {

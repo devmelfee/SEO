@@ -47,3 +47,11 @@ test("custo de IA por modelo", () => {
   assert.equal(llmCostUsd("claude-sonnet-4-6", 1e6, 1e6), 18);
   assert.equal(llmCostUsd("modelo-desconhecido", 1e6, 0), 3);
 });
+
+test("modelos escolhíveis têm preço próprio e o rápido é o mais barato", async () => {
+  const { AI_MODELS, llmCostUsd, DEFAULT_AI_MODEL, modelInfo } = await import("./limits.ts");
+  assert.ok(modelInfo(DEFAULT_AI_MODEL));
+  const costs = AI_MODELS.map((m) => llmCostUsd(m.id, 1500, 3000));
+  assert.deepEqual([...costs].sort((a, b) => a - b), costs); // Rápido < Equilibrado < Premium
+  assert.equal(llmCostUsd("claude-haiku-5-5", 1e6, 1e6), 0.6);
+});

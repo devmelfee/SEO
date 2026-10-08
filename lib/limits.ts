@@ -62,6 +62,23 @@ export function allowance(m: Meters, needed: number): { ok: true } | { ok: false
   return { ok: true };
 }
 
+export type AiUse = "text" | "site";
+export type AiModel = { id: string; tier: string; note: string; effort: "low" | "medium" | "high" };
+/** Modelos que o administrador pode escolher. O esforço controla quanto o modelo "pensa" (e o custo). */
+export const AI_MODELS: AiModel[] = [
+  { id: "claude-haiku-5-5", tier: "Rápido", note: "o mais barato; bom para textos curtos", effort: "low" },
+  { id: "claude-sonnet-5-5", tier: "Equilibrado", note: "recomendado para a maioria", effort: "medium" },
+  { id: "claude-opus-5-5", tier: "Premium", note: "melhor qualidade; vale para sites e propostas", effort: "medium" },
+];
+export const DEFAULT_AI_MODEL = "claude-sonnet-5-5";
+export const modelInfo = (id: string): AiModel | undefined => AI_MODELS.find((m) => m.id === id);
+
+/** Tokens típicos por ação, usados enquanto não há histórico real para tirar a média. */
+export const TYPICAL_TOKENS: Record<"texto_ia" | "site_ia", { input: number; output: number }> = {
+  texto_ia: { input: 1500, output: 3000 },
+  site_ia: { input: 2500, output: 10000 },
+};
+
 /** Preço por milhão de tokens (US$) dos modelos Claude; desconhecido cai no Sonnet 4.6. */
 const LLM_PRICES: Record<string, [number, number]> = {
   "claude-haiku-5-5": [0.1, 0.5], "claude-haiku-4-5": [1, 5],

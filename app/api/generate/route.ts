@@ -2,7 +2,7 @@ import { z } from "zod";
 import Anthropic from "@anthropic-ai/sdk";
 import { generate } from "@/lib/claude";
 import { currentUser } from "@/lib/session";
-import { guard, recordUsage } from "@/lib/usage";
+import { aiModel, guard, recordUsage } from "@/lib/usage";
 import { llmCostUsd } from "@/lib/limits";
 import { fail, handle, ok } from "@/lib/http";
 
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     const { system, prompt, maxTokens } = Body.parse(await req.json());
     const me = await currentUser();
     await guard(me, "llm", 1);
-    const g = await generate(system, prompt, maxTokens);
+    const g = await generate(system, prompt, maxTokens, await aiModel("text"));
     await recordUsage(me, { kind: "llm", action: "texto_ia", query: system.slice(0, 120), units: 1, model: g.model,
       input_tokens: g.inputTokens, output_tokens: g.outputTokens, cost_usd: llmCostUsd(g.model, g.inputTokens, g.outputTokens) });
     return ok({ text: g.text });

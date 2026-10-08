@@ -242,3 +242,7 @@ create table if not exists public.proposals (
   updated_at timestamptz not null default now()
 );
 alter table public.proposals enable row level security;
+
+-- Modelo de IA escolhido pelo administrador (textos e sites).
+alter table public.agency_settings add column if not exists ai_model_text text;
+alter table public.agency_settings add column if not exists ai_model_site text;

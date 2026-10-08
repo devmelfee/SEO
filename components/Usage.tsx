@@ -1,8 +1,8 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { whatsappNumber } from "@/lib/site";
-import type { Limits, Meter, Meters } from "@/lib/limits";
+import { AI_MODELS, llmCostUsd, TYPICAL_TOKENS, type Limits, type Meter, type Meters } from "@/lib/limits";
 import { Shell } from "./Modals";
 import { C, btn, input, label, primary } from "./styles";
 
@@ -108,7 +108,8 @@ type Person = {
 type Ev = { user_email: string; kind: "places" | "llm"; action: string; query: string; units: number; model: string | null;
   input_tokens: number | null; output_tokens: number | null; cost_usd: number; created_at: string };
 type Report = { days: number; usdBrl: number; defaults: Limits; totals: Totals; people: Person[];
-  byAction: Record<string, { count: number; units: number; usd: number }>; recent: Ev[] };
+  byAction: Record<string, { count: number; units: number; usd: number; input: number; output: number }>; recent: Ev[];
+  placesUsd: number; models: { text: string; site: string } };
 
 const ACTION: Record<string, string> = {
   radar: "🔎 Busca no Radar", onde_prospectar: "🧭 Onde prospectar", concorrentes: "📊 Concorrentes (fase 1)",
@@ -247,6 +248,8 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
           );
         })}
 
+        <ModelsAndCosts r={r} rate={rate} onSaved={() => ok("Modelo salvo.")} onError={setErr} />
+
         <details className="dash-card" style={{ margin: "16px 0" }}>
           <summary style={{ cursor: "pointer", fontWeight: 800, fontSize: 14 }}>⚙️ Limite padrão da equipe (vale para quem não tem limite próprio)</summary>
           <div style={{ marginTop: 12 }}>
@@ -295,5 +298,98 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
         </div>
       </>)}
     </Shell>
+  );
+}
+
+// ─── Modelo de IA e comparativo de custos ────────────────────────────────────
+
+/** Tokens médios por geração: a média real do período quando existe, senão o típico. */
+function avgTokens(r: Report, action: "texto_ia" | "site_ia") {
+  const a = r.byAction[action];
+  return a && a.count && a.input + a.output > 0 ? { input: a.input / a.count, output: a.output / a.count, real: true } : { ...TYPICAL_TOKENS[action], real: false };
+}
+
+function ModelsAndCosts({ r, rate, onSaved, onError }: { r: Report; rate: number; onSaved: () => void; onError: (m: string) => void }) {
+  const [models, setModels] = useState(r.models);
+  const reais = (usdV: number) => brl(usdV * rate);
+  const text = avgTokens(r, "texto_ia"), site = avgTokens(r, "site_ia");
+  const choose = async (use: "text" | "site", id: string) => {
+    setModels((m) => ({ ...m, [use]: id }));
+    try { await api("/api/usage", { method: "PUT", body: use === "text" ? { ai_model_text: id } : { ai_model_site: id } }); onSaved(); }
+    catch (e) { onError((e as Error).message); }
+  };
+
+  // Mesmo uso de IA do período, re-precificado em cada modelo. Sem uso: 100 textos + 10 sites como exemplo.
+  const t = r.byAction.texto_ia, s = r.byAction.site_ia;
+  const hasUse = !!((t?.input ?? 0) + (t?.output ?? 0) + (s?.input ?? 0) + (s?.output ?? 0));
+  const scenario = hasUse
+    ? [{ i: t?.input ?? 0, o: t?.output ?? 0, use: "text" as const }, { i: s?.input ?? 0, o: s?.output ?? 0, use: "site" as const }]
+    : [{ i: text.input * 100, o: text.output * 100, use: "text" as const }, { i: site.input * 10, o: site.output * 10, use: "site" as const }];
+  const bars = AI_MODELS.map((m) => ({ m, usd: scenario.reduce((acc, x) => acc + llmCostUsd(m.id, x.i, x.o), 0) }));
+  const current = scenario.reduce((acc, x) => acc + llmCostUsd(models[x.use], x.i, x.o), 0);
+  const max = Math.max(...bars.map((b) => b.usd), current, 1e-9);
+  const searchUsd = r.placesUsd;
+
+  const cell = (usdV: number, on: boolean) => (
+    <td style={{ padding: "7px 8px", textAlign: "right", whiteSpace: "nowrap", fontWeight: on ? 800 : 400, color: on ? C.text : C.body,
+      background: on ? "#7C3AED22" : undefined }}>{reais(usdV)}</td>
+  );
+
+  return (
+    <div className="dash-card" style={{ margin: "16px 0" }}>
+      <h3 className="dash-title">🤖 Modelo de IA e comparativo de custos</h3>
+      <p className="dash-sub">Escolha o modelo para cada uso. A troca vale para a próxima geração de toda a equipe.</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, marginBottom: 16 }}>
+        {(["text", "site"] as const).map((use) => (
+          <div key={use}><label style={label} htmlFor={`model-${use}`}>{use === "text" ? "Textos (diagnóstico e entrega)" : "Sites de prévia com IA"}</label>
+            <select id={`model-${use}`} value={models[use]} onChange={(e) => choose(use, e.target.value)} style={{ ...input, fontSize: 13, cursor: "pointer" }}>
+              {AI_MODELS.map((m) => {
+                const tk = use === "text" ? text : site;
+                return <option key={m.id} value={m.id}>{m.tier} — {reais(llmCostUsd(m.id, tk.input, tk.output))} por {use === "text" ? "texto" : "site"} · {m.note}</option>;
+              })}
+              {!AI_MODELS.some((m) => m.id === models[use]) && <option value={models[use]}>{models[use]} (definido na Vercel)</option>}
+            </select></div>
+        ))}
+      </div>
+
+      <div style={{ overflowX: "auto", marginBottom: 18 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+          <caption style={{ textAlign: "left", fontSize: 12, color: C.muted, marginBottom: 6 }}>Custo estimado por ação (destacado = modelo em uso)</caption>
+          <thead><tr style={{ color: C.muted }}>
+            <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: `1px solid ${C.border}`, fontWeight: 600 }}>Ação</th>
+            {AI_MODELS.map((m) => <th key={m.id} style={{ textAlign: "right", padding: "6px 8px", borderBottom: `1px solid ${C.border}`, fontWeight: 600 }}>{m.tier}</th>)}
+          </tr></thead>
+          <tbody>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "7px 8px" }}>🔎 Busca no Google (20 empresas)</td>
+              {AI_MODELS.map((m) => <td key={m.id} style={{ padding: "7px 8px", textAlign: "right", color: C.body }}>{reais(searchUsd)}</td>)}</tr>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "7px 8px" }}>✦ Texto com IA {text.real ? <span style={{ color: C.dim }}>(média real)</span> : ""}</td>
+              {AI_MODELS.map((m) => <Fragment key={m.id}>{cell(llmCostUsd(m.id, text.input, text.output), m.id === models.text)}</Fragment>)}</tr>
+            <tr><td style={{ padding: "7px 8px" }}>🌐 Site com IA {site.real ? <span style={{ color: C.dim }}>(média real)</span> : ""}</td>
+              {AI_MODELS.map((m) => <Fragment key={m.id}>{cell(llmCostUsd(m.id, site.input, site.output), m.id === models.site)}</Fragment>)}</tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style={{ fontSize: 12.5, fontWeight: 700, margin: "0 0 4px" }}>
+        {hasUse ? `Gasto de IA destes ${r.days === 1 ? "último dia" : `${r.days} dias`} em cada modelo` : "Exemplo: 100 textos + 10 sites em cada modelo"}
+      </p>
+      <p style={{ fontSize: 11.5, color: C.dim, margin: "0 0 10px" }}>Mesmo uso, preço de cada modelo. O Google custa igual em todos ({reais(r.totals.placesUsd)} no período).</p>
+      <div role="img" aria-label={bars.map((b) => `${b.m.tier}: ${reais(b.usd)}`).join(", ")}>
+        {[...bars, { m: { id: "atual", tier: "Sua escolha atual", note: "", effort: "low" as const }, usd: current }].map((b) => (
+          <div key={b.m.id} title={`${b.m.tier}: ${reais(b.usd)} (${usd(b.usd)})`} style={{ display: "grid", gridTemplateColumns: "130px 1fr 90px", gap: 10, alignItems: "center", marginBottom: 6 }}>
+            <span style={{ fontSize: 12, color: b.m.id === "atual" ? C.text : C.body, fontWeight: b.m.id === "atual" ? 800 : 400 }}>{b.m.tier}</span>
+            <span style={{ height: 14, background: C.panel2, borderRadius: 4 }}>
+              <span style={{ display: "block", height: "100%", width: `${Math.max(1, (100 * b.usd) / max)}%`, borderRadius: "0 4px 4px 0",
+                background: b.m.id === "atual" ? "#A78BFA" : "#6D28D9" }} />
+            </span>
+            <span style={{ fontSize: 12, textAlign: "right", fontWeight: b.m.id === "atual" ? 800 : 400 }}>{reais(b.usd)}</span>
+          </div>
+        ))}
+      </div>
+      <p style={{ fontSize: 11, color: C.dim, margin: "8px 0 0" }}>
+        Estimativa pela tabela de preços da Anthropic (US$ por milhão de tokens) e pelos tokens {text.real || site.real ? "médios reais" : "típicos"} de cada ação.
+        Modelos diferentes gastam quantidades um pouco diferentes de tokens; o valor exato de cada geração está em "Últimas buscas".
+      </p>
+    </div>
   );
 }

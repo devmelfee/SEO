@@ -2,7 +2,9 @@ import { z } from "zod";
 import { db } from "@/lib/supabase";
 import { currentUser } from "@/lib/session";
 import { check, fail, handle, ok } from "@/lib/http";
-import { mergeLimits, meters, WEEK_MS, type Limits, type UsageEvent } from "@/lib/limits";
+import { AI_MODELS, mergeLimits, meters, WEEK_MS, type Limits, type UsageEvent } from "@/lib/limits";
+import { MODEL } from "@/lib/claude";
+import { PLACES_USD } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 const SETTINGS_ID = "00000000-0000-0000-0000-000000000001";
@@ -27,7 +29,7 @@ export async function GET(req: Request) {
     const periodStart = new Date(now.getTime() - days * 864e5).toISOString();
 
     const [ag, members, events] = await Promise.all([
-      db().from("agency_settings").select("default_limits,usd_brl").eq("id", SETTINGS_ID).maybeSingle().then(check) as Promise<{ default_limits: Partial<Limits> | null; usd_brl: number | null } | null>,
+      db().from("agency_settings").select("default_limits,usd_brl,ai_model_text,ai_model_site").eq("id", SETTINGS_ID).maybeSingle().then(check) as Promise<{ default_limits: Partial<Limits> | null; usd_brl: number | null; ai_model_text: string | null; ai_model_site: string | null } | null>,
       db().from("team_members").select("email,role,phone,limits,usage_reset_at").order("created_at").then(check) as Promise<Member[]>,
       db().from("usage_events").select("user_email,kind,action,query,units,model,input_tokens,output_tokens,cost_usd,created_at")
         .gte("created_at", from).order("created_at", { ascending: false }).limit(10000).then(check) as Promise<Ev[]>,
@@ -54,14 +56,16 @@ export async function GET(req: Request) {
       };
     });
 
-    const byAction: Record<string, { count: number; units: number; usd: number }> = {};
+    const byAction: Record<string, { count: number; units: number; usd: number; input: number; output: number }> = {};
     for (const e of inPeriod) {
-      const a = (byAction[e.action || e.kind] ??= { count: 0, units: 0, usd: 0 });
-      a.count++; a.units += e.units; a.usd += Number(e.cost_usd);
+      const a = (byAction[e.action || e.kind] ??= { count: 0, units: 0, usd: 0, input: 0, output: 0 });
+      a.count++; a.units += e.units; a.usd += Number(e.cost_usd); a.input += e.input_tokens ?? 0; a.output += e.output_tokens ?? 0;
     }
+    const valid = (m: string | null | undefined) => (m && AI_MODELS.some((x) => x.id === m) ? m : MODEL);
     return ok({
       days, usdBrl: Number(ag?.usd_brl ?? 5.5), defaults: mergeLimits(ag?.default_limits), totals: sum(inPeriod),
-      people, byAction, recent: inPeriod.slice(0, 150),
+      people, byAction, recent: inPeriod.slice(0, 150), placesUsd: PLACES_USD,
+      models: { text: valid(ag?.ai_model_text), site: valid(ag?.ai_model_site) },
     });
   } catch (e) { return handle(e); }
 }
@@ -73,7 +77,11 @@ const LimitsSchema = z.object({
   ai_window: z.number().int().min(0).max(100000).nullable(),
   ai_week: z.number().int().min(0).max(100000).nullable(),
 });
-const Defaults = z.object({ default_limits: LimitsSchema, usd_brl: z.number().min(0.1).max(100).optional() });
+const ModelId = z.enum(AI_MODELS.map((m) => m.id) as [string, ...string[]]);
+const Defaults = z.object({
+  default_limits: LimitsSchema.optional(), usd_brl: z.number().min(0.1).max(100).optional(),
+  ai_model_text: ModelId.optional(), ai_model_site: ModelId.optional(),
+});
 
 /** Limites padrão da equipe (valem para quem não tem limite próprio) e câmbio do relatório. */
 export async function PUT(req: Request) {
