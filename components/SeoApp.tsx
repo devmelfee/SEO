@@ -39,6 +39,9 @@ export default function SeoApp() {
   const completedRef = useRef(completed);
   completedRef.current = completed;
   const dbTimer = useRef<ReturnType<typeof setTimeout>>();
+  // Só grava o cliente quando alguém EDITOU algo nesta tela. Carregar rascunho ou abrir cliente não grava
+  // (antes, um rascunho velho no navegador sobrescrevia o que estava no banco).
+  const dirty = useRef(false);
 
   const supabaseOn = !!status?.supabase;
 
@@ -61,7 +64,9 @@ export default function SeoApp() {
       if (!s.supabase) return;
       const st = await api<Agency>("/api/settings").catch(() => ({}) as Agency);
       setSettings(st);
-      if (!d) setFormData((p) => applyDefaults(p, st));
+      // O banco é a fonte da verdade: se o rascunho aponta para um cliente salvo, recarrega dele.
+      if (d?.clientId) await openClient(d.clientId, { keepPhase: d.activePhase });
+      else if (!d) setFormData((p) => applyDefaults(p, st));
     }).catch(() => setStatus(null));
   }, []);
 
@@ -85,8 +90,9 @@ export default function SeoApp() {
 
   // Mudanças na Configuração Inicial e nas fases concluídas vão para o banco (antes só a criação era salva).
   useEffect(() => {
-    if (!hydrated || !clientId || !supabaseOn) return;
+    if (!hydrated || !clientId || !supabaseOn || !dirty.current) return;
     const t = setTimeout(() => {
+      dirty.current = false;
       api(`/api/clients/${clientId}`, { method: "PATCH", body: payload() })
         .then(() => flashDb("✓ salvo", C.green))
         .catch((e) => flashDb(`⚠ ${e.message}`, "#F87171", true));
@@ -113,13 +119,14 @@ export default function SeoApp() {
     await saveSection(label, text, false);
   };
 
-  const updateField = (k: keyof FormData, v: string) => setFormData((p) => ({ ...p, [k]: v }));
+  const updateField = (k: keyof FormData, v: string) => { dirty.current = true; setFormData((p) => ({ ...p, [k]: v })); };
 
   const markDone = async (idx: number) => {
     if (idx === 0) {
       const miss = missingFields(formData);
       if (miss.length) { flashDb("⚠ Preencha nome, nicho e cidade", "#F87171"); return; }
     }
+    dirty.current = true;
     setCompleted((p) => (p.includes(idx) ? p : [...p, idx].sort()));
     if (idx === 0) await ensureClient().catch((e) => flashDb(`⚠ ${e.message}`, "#F87171", true));
     if (idx < PHASES.length - 1) setActivePhase(idx + 1);
@@ -130,15 +137,19 @@ export default function SeoApp() {
     setActivePhase(0); setSession((s) => s + 1);
   };
 
-  const openClient = async (id: string) => {
+  const openClient = async (id: string, opts: { keepPhase?: number } = {}) => {
+    dirty.current = false;
     try {
       const { client, phases } = await api<{ client: any; phases: { phase_label: string; content: string; original_content: string }[] }>(`/api/clients/${id}`);
       setFormData({ clientName: client.name, clientUrl: client.url, vertical: client.vertical, city: client.city,
         pricing: client.pricing, goal: client.goal, realData: client.real_data });
       setResults(Object.fromEntries(phases.map((p) => [p.phase_label, { content: p.content, original: p.original_content || p.content }])));
       setCompleted(Array.isArray(client.completed_phases) ? client.completed_phases : []);
-      setClientId(client.id); setActivePhase(0); setSession((s) => s + 1); setModal(null);
-    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); }
+      setClientId(client.id); setActivePhase(opts.keepPhase ?? 0); setSession((s) => s + 1); setModal(null);
+    } catch (e) {
+      // Cliente apagado no banco: descarta o rascunho órfão em vez de recriar com dados velhos.
+      if (/não encontrado/i.test((e as Error).message)) { setClientId(null); setResults({}); }
+      flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); }
   };
 
   /** Lead do Radar → cliente em execução, já com nicho, cidade, site e os concorrentes reais da busca. */
