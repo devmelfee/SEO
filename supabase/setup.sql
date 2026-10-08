@@ -153,3 +153,12 @@ create table if not exists public.market_snapshots (
 );
 create index if not exists market_snapshots_niche_idx on public.market_snapshots (niche, created_at desc);
 alter table public.market_snapshots enable row level security;
+
+-- ── team_members (quem pode entrar no app; o primeiro usuário vira admin) ────
+create table if not exists public.team_members (
+  email text primary key check (email = lower(email)),
+  role text not null default 'member' check (role in ('admin','member')),
+  added_by text default '',
+  created_at timestamptz default now()
+);
+alter table public.team_members enable row level security;
