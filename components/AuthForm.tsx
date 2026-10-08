@@ -121,6 +121,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
           </>
         ) : mode !== "nova-senha" && <a href="/login" style={{ color: C.blue }}>← Voltar para entrar</a>}
       </div>
+      <p style={{ margin: "18px 0 0", fontSize: 13, color: C.muted, textAlign: "center" }}><a href="/apresentacao" style={{ color: C.muted }}>Conheça o sistema →</a></p>
     </Card>
   );
 }
