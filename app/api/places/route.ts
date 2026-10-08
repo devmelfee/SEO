@@ -30,7 +30,12 @@ export async function POST(req: Request) {
       cache: "no-store",
     });
     const json = await res.json().catch(() => ({}));
-    if (!res.ok) return fail(502, `Google Places respondeu ${res.status}: ${json?.error?.message ?? "erro"}`);
+    if (!res.ok) {
+      const hint = res.status === 403
+        ? " — No Google Cloud, na chave: Restrições de aplicativo = Nenhuma (não use 'Sites') e inclua 'Places API (New)' nas APIs permitidas."
+        : res.status === 429 ? " — Cota do Google esgotada; tente mais tarde." : "";
+      return fail(502, `Google Places respondeu ${res.status}: ${json?.error?.message ?? "erro"}${hint}`);
+    }
 
     const places: Place[] = json.places ?? [];
     const text = formatPlaces(places);
