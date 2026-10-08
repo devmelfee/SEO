@@ -6,6 +6,7 @@ import { PromptCard } from "./PromptCard";
 import { RealDataPanel } from "./RealDataPanel";
 import { UrlField, VerticalPicker } from "./Fields";
 import { Radar, type Prospect } from "./Radar";
+import { SiteBuilder } from "./SiteBuilder";
 import { ClientsModal, ReportModal, SettingsModal, type Agency } from "./Modals";
 import { C, btn, input, label, primary } from "./styles";
 
@@ -27,7 +28,10 @@ export default function SeoApp() {
   const [settings, setSettings] = useState<Agency>({});
   const [status, setStatus] = useState<Status | null>(null);
   const [modal, setModal] = useState<null | "settings" | "report" | "clients">(null);
-  const [view, setView] = useState<"radar" | "exec">("radar");
+  const [view, setView] = useState<"radar" | "exec">(() => {
+    try { return localStorage.getItem("seo_view") === "exec" ? "exec" : "radar"; } catch { return "radar"; }
+  });
+  useEffect(() => { try { localStorage.setItem("seo_view", view); } catch { /* sem armazenamento */ } }, [view]);
   const [dbMsg, setDbMsg] = useState<{ t: string; c: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -244,11 +248,11 @@ export default function SeoApp() {
         </div>
       )}
 
-      {view === "radar" ? (
-        <div className="layout-single">
-          <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} onCreateClient={startFromProspect} />
-        </div>
-      ) : (
+      {/* O Radar fica montado (só escondido) para não perder busca, filtros e análise ao trocar de aba. */}
+      <div className="layout-single" hidden={view !== "radar"}>
+        <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} aiEnabled={!!status?.anthropic} onCreateClient={startFromProspect} />
+      </div>
+      {view === "exec" && (
       <div className="layout">
         <aside className="sidebar">
           <p style={{ ...label, color: C.faint, fontSize: 10 }}>Fases</p>
@@ -285,6 +289,16 @@ export default function SeoApp() {
             <div key={`${session}-${phase.id}`}>
               {phaseNeedsRealData(phase) && (
                 <RealDataPanel formData={formData} onChange={(v) => updateField("realData", v)} placesEnabled={!!status?.places} clientId={clientId} />
+              )}
+              {phase.id === 7 && (
+                <div style={{ background: C.panel, border: `1px solid ${phase.color}40`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
+                  <h3 style={{ margin: "0 0 4px", fontSize: 15 }}>🌐 Site de prévia para levar na abordagem</h3>
+                  <p style={{ margin: "0 0 14px", fontSize: 12.5, color: C.muted }}>
+                    Gere na hora com o modelo, com IA, ou copie o prompt para o Claude.ai e cole o HTML. O link vai junto com os scripts abaixo.
+                  </p>
+                  {clientId ? <SiteBuilder target={{ clientId }} aiEnabled={!!status?.anthropic} />
+                    : <p style={{ color: "#FCD34D", fontSize: 13, margin: 0 }}>⚠ Salve o cliente primeiro (conclua a Configuração Inicial com o banco ligado).</p>}
+                </div>
               )}
               {phase.parts!.map((part) => (
                 <PromptCard key={part.label} part={part} formData={promptData} color={phase.color} saved={results[part.label]} aiEnabled={!!status?.anthropic}

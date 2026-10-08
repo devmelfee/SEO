@@ -9,6 +9,7 @@ const Body = z.object({
   status: z.enum(STATUSES).optional(),
   notes: z.string().max(5000).optional(),
   client_id: z.string().uuid().nullable().optional(),
+  project_id: z.string().uuid().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

@@ -3,6 +3,8 @@ import { authClient, authConfigured, membership } from "@/lib/auth";
 
 // Páginas e rotas que não exigem login.
 const PUBLIC = ["/login", "/cadastro", "/recuperar", "/auth/callback", "/api/status"];
+// Sites de prévia (/s/nome-da-empresa) são públicos: é o link que vai para o prospect.
+const isPublic = (p: string) => PUBLIC.includes(p) || /^\/s\/[a-z0-9-]+$/.test(p);
 // Exigem login, mas não fazer parte da equipe (trocar senha, aviso de acesso pendente).
 const LOGGED_ONLY = ["/nova-senha", "/sem-acesso", "/api/logout"];
 
@@ -13,7 +15,7 @@ export async function middleware(req: NextRequest) {
     isApi ? NextResponse.json({ error: { message } }, { status }) : NextResponse.redirect(new URL(to, req.url));
 
   if (!authConfigured()) {
-    if (PUBLIC.includes(pathname)) return NextResponse.next();
+    if (isPublic(pathname)) return NextResponse.next();
     return deny(503, "Login não configurado (SUPABASE_URL / SUPABASE_ANON_KEY).", "/login");
   }
 
@@ -29,7 +31,7 @@ export async function middleware(req: NextRequest) {
   });
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (PUBLIC.includes(pathname)) return res;
+  if (isPublic(pathname)) return res;
   if (!user) return deny(401, "Sessão expirada. Entre novamente.", `/login?next=${encodeURIComponent(pathname)}`);
   if (LOGGED_ONLY.includes(pathname)) return res;
 

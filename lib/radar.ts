@@ -34,6 +34,7 @@ export async function runRadarSearch(query: string, max: number) {
       website: data.website ?? "", maps_url: p.googleMapsUri ?? "", rating: p.rating ?? null, reviews_count: data.reviews,
       primary_type: p.primaryType ?? "", types: data.types, has_hours: data.hasHours, photos_count: data.photos,
       business_status: p.businessStatus ?? "", lat: p.location?.latitude ?? null, lng: p.location?.longitude ?? null,
+      hours: p.regularOpeningHours?.weekdayDescriptions ?? [],
       rank_in_search: i + 1, score, issues, updated_at: new Date().toISOString(),
     };
   });

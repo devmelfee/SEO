@@ -162,3 +162,19 @@ create table if not exists public.team_members (
   created_at timestamptz default now()
 );
 alter table public.team_members enable row level security;
+
+-- ── projects (campanhas de prospecção) + vínculo dos leads + lotes de análise ─
+create table if not exists public.projects (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  niche text default '',
+  notes text default '',
+  created_by text default '',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+alter table public.projects enable row level security;
+alter table public.prospects add column if not exists project_id uuid references public.projects(id) on delete set null;
+create index if not exists prospects_project_idx on public.prospects (project_id);
+alter table public.market_snapshots add column if not exists batch_id uuid;
+create index if not exists market_snapshots_batch_idx on public.market_snapshots (batch_id);

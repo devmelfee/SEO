@@ -3,27 +3,29 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { STATUSES, type Issue, type ProspectStatus } from "@/lib/opportunity";
 import { VERTICALS } from "@/lib/phases";
-import { REGION_PRESETS } from "@/lib/market";
+import { HOT, REGION_PRESETS } from "@/lib/market";
+import { RegionDashboard, type RegionResult } from "./RegionDashboard";
+import { ProjectsPanel, type Project } from "./ProjectsPanel";
+import { SiteBuilder } from "./SiteBuilder";
 import { C, btn, input, label, primary } from "./styles";
 
 export type Prospect = {
   id?: string; place_id: string; query: string; name: string; address: string; phone: string; website: string;
   maps_url: string; rating: number | null; reviews_count: number; primary_type: string; has_hours: boolean;
   photos_count: number; rank_in_search: number; score: number; issues: Issue[]; status?: ProspectStatus; notes?: string;
-  client_id?: string | null;
+  client_id?: string | null; project_id?: string | null;
 };
+
+type Mode = "cidade" | "regiao" | "projetos";
+const UI_KEY = "seo_radar_ui_v1";
+type UiState = { mode: Mode; vertical: string; city: string; max: 20 | 40 | 60; citiesText: string; activeQuery: string; projectFilter: string; batchId: string };
+function readUi(): Partial<UiState> { try { return JSON.parse(localStorage.getItem(UI_KEY) ?? "{}"); } catch { return {}; } }
 
 const STATUS_LABEL: Record<ProspectStatus, string> = {
   novo: "Novo", abordado: "Abordado", proposta: "Proposta enviada", fechado: "Fechado", descartado: "Descartado",
 };
 const STATUS_COLOR: Record<ProspectStatus, string> = {
   novo: C.blue, abordado: "#FBBF24", proposta: "#A78BFA", fechado: C.green, descartado: C.dim,
-};
-
-type RegionResult = {
-  niche: string;
-  results: { city: string; query: string; error?: string;
-    summary?: { total: number; noSite: number; avgReviews: number; leaderReviews: number; hot: number; opportunity: number } }[];
 };
 
 export function scoreColor(s: number) {
@@ -39,34 +41,59 @@ export function competitorsText(all: Prospect[], self: Prospect): string {
     `${self.website ? `site ${self.website}` : "SEM SITE"}. Problemas detectados: ${self.issues.map((i) => i.label).join(", ") || "nenhum"}.`;
 }
 
-export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
-  placesEnabled: boolean; supabaseOn: boolean;
+export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: {
+  placesEnabled: boolean; supabaseOn: boolean; aiEnabled: boolean;
   onCreateClient: (p: Prospect, competitors: string, vertical: string, city: string) => void;
 }) {
-  const [mode, setMode] = useState<"cidade" | "regiao">("cidade");
-  const [vertical, setVertical] = useState("");
-  const [citiesText, setCitiesText] = useState("");
+  // Estado da tela guardado no navegador: trocar de aba ou recarregar não perde a busca nem os filtros.
+  const [ui0] = useState(readUi);
+  const [mode, setMode] = useState<Mode>(ui0.mode ?? "cidade");
+  const [vertical, setVertical] = useState(ui0.vertical ?? "");
+  const [citiesText, setCitiesText] = useState(ui0.citiesText ?? "");
   const [regionBusy, setRegionBusy] = useState(false);
   const [region, setRegion] = useState<RegionResult | null>(null);
-  const [city, setCity] = useState("");
-  const [max, setMax] = useState<20 | 40 | 60>(20);
+  const [batches, setBatches] = useState<{ batchId: string; niche: string; createdAt: string; cities: string[] }[]>([]);
+  const [city, setCity] = useState(ui0.city ?? "");
+  const [max, setMax] = useState<20 | 40 | 60>(ui0.max ?? 20);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [rows, setRows] = useState<Prospect[]>([]);
   const [queries, setQueries] = useState<string[]>([]);
-  const [activeQuery, setActiveQuery] = useState("");
+  const [activeQuery, setActiveQuery] = useState(ui0.activeQuery ?? "");
+  const [projectFilter, setProjectFilter] = useState(ui0.projectFilter ?? "");
+  const [projects, setProjects] = useState<Project[]>([]);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"" | ProspectStatus>("");
   const [open, setOpen] = useState<string | null>(null);
+  const [siteFor, setSiteFor] = useState<string | null>(null);
 
-  const load = async (query = activeQuery) => {
+  useEffect(() => {
+    try {
+      localStorage.setItem(UI_KEY, JSON.stringify({ mode, vertical, city, max, citiesText, activeQuery, projectFilter, batchId: region?.batchId ?? "" } satisfies UiState));
+    } catch { /* navegador sem armazenamento: segue sem lembrar */ }
+  }, [mode, vertical, city, max, citiesText, activeQuery, projectFilter, region?.batchId]);
+
+  const loadProjects = () => api<Project[]>("/api/projects").then(setProjects).catch(() => {});
+  const loadBatches = () => api<{ batches: typeof batches }>("/api/radar/region").then((r) => setBatches(r.batches)).catch(() => {});
+  const openBatch = async (id: string) => {
+    if (!id) { setRegion(null); return; }
+    try { setRegion(await api<RegionResult>(`/api/radar/region?batch=${id}`)); } catch (e) { setErr((e as Error).message); }
+  };
+
+  const load = async (query = activeQuery, project = projectFilter) => {
     if (!supabaseOn) return;
     try {
-      const r = await api<{ prospects: Prospect[]; queries: string[] }>(`/api/prospects${query ? `?query=${encodeURIComponent(query)}` : ""}`);
+      const qs = new URLSearchParams();
+      if (project) qs.set("project", project); else if (query) qs.set("query", query);
+      const r = await api<{ prospects: Prospect[]; queries: string[] }>(`/api/prospects${qs.size ? `?${qs}` : ""}`);
       setRows(r.prospects); setQueries(r.queries);
     } catch (e) { setErr((e as Error).message); }
   };
-  useEffect(() => { load(""); }, [supabaseOn]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!supabaseOn) return;
+    load(); loadProjects(); loadBatches();
+    if (ui0.batchId) openBatch(ui0.batchId);
+  }, [supabaseOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cityList = [...new Set(citiesText.split(/[,\n;]/).map((c) => c.trim()).filter((c) => c.length > 1))].slice(0, 12);
   const canRegion = placesEnabled && vertical.trim().length > 1 && cityList.length > 0 && !regionBusy;
@@ -75,20 +102,37 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
     setRegionBusy(true); setErr(""); setRegion(null);
     try {
       const r = await api<RegionResult>("/api/radar/region", { body: { niche: vertical.trim(), cities: cityList } });
-      setRegion(r);
+      setRegion(r); loadBatches();
       setQueries((q) => [...new Set([...r.results.map((x) => x.query), ...q])]);
     } catch (e) { setErr((e as Error).message); }
     setRegionBusy(false);
   };
 
-  const openQuery = (query: string) => { setMode("cidade"); setActiveQuery(query); load(query); };
+  const openQuery = (query: string) => { setMode("cidade"); setProjectFilter(""); setActiveQuery(query); load(query, ""); };
+  const openProject = (p: Project) => { setMode("cidade"); setProjectFilter(p.id); setActiveQuery(""); load("", p.id); };
+
+  const createProject = async (name: string, niche: string) => {
+    const p = await api<Project>("/api/projects", { body: { name, niche } });
+    await loadProjects();
+    return p;
+  };
+  const addToProject = async (projectId: string, qs: string[], filter: "all" | "hot" | "no_site") => {
+    const r = await api<{ added: number }>(`/api/projects/${projectId}/leads`, { body: { queries: qs, filter } });
+    await loadProjects();
+    return r.added;
+  };
+  const deleteProject = async (p: Project) => {
+    await api(`/api/projects/${p.id}`, { method: "DELETE" });
+    if (projectFilter === p.id) setProjectFilter("");
+    await loadProjects();
+  };
 
   const search = async () => {
     const query = `${vertical.trim()} em ${city.trim()}`;
     setBusy(true); setErr("");
     try {
       const r = await api<{ prospects: Prospect[] }>("/api/radar", { body: { query, max } });
-      setRows(r.prospects); setActiveQuery(query);
+      setRows(r.prospects); setActiveQuery(query); setProjectFilter("");
       if (!queries.includes(query)) setQueries((q) => [query, ...q]);
     } catch (e) { setErr((e as Error).message); }
     setBusy(false);
@@ -107,7 +151,7 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
   [rows, onlyNoSite, statusFilter]);
 
   const noSite = rows.filter((r) => !r.website || r.issues.some((i) => i.code === "social_only")).length;
-  const hot = rows.filter((r) => r.score >= 60).length;
+  const hot = rows.filter((r) => r.score >= HOT).length;
   const canSearch = placesEnabled && vertical.trim().length > 1 && city.trim().length > 1 && !busy;
 
   return (
@@ -118,11 +162,12 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
           Busca empresas no Google Maps, aponta o que está faltando em cada uma e ordena da melhor oportunidade para a pior.
         </p>
         <div role="tablist" style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-          {([["cidade", "🔎 Buscar numa cidade"], ["regiao", "🧭 Onde prospectar (comparar cidades)"]] as const).map(([m, l]) => (
+          {([["cidade", "🔎 Buscar numa cidade"], ["regiao", "🧭 Onde prospectar"], ["projetos", `📁 Projetos${projects.length ? ` (${projects.length})` : ""}`]] as const).map(([m, l]) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
               style={btn(mode === m ? "#7C3AED" : C.panel2, mode === m ? "#fff" : C.dim, { border: `1px solid ${mode === m ? "#7C3AED" : C.border}` })}>{l}</button>
           ))}
         </div>
+        {mode !== "projetos" && (<>
         <div className="radar-form">
           <div style={{ flex: 2 }}><label style={label} htmlFor="radar-niche">Nicho (digite qualquer um)</label>
             <input id="radar-niche" list="radar-verticals" value={vertical} onChange={(e) => setVertical(e.target.value)}
@@ -167,51 +212,46 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
             <span style={{ fontSize: 12, color: C.muted }}>Busca 20 empresas por cidade ({cityList.length * 20} no total) e salva todas como leads.</span>
           </div>
         )}
+        </>)}
         {!placesEnabled && <p style={{ color: "#FCD34D", fontSize: 12, margin: "12px 0 0" }}>⚠ Busca desligada: falta GOOGLE_PLACES_API_KEY (e o faturamento ativo no Google Cloud).</p>}
         {!supabaseOn && <p style={{ color: "#FCD34D", fontSize: 12, margin: "8px 0 0" }}>⚠ Supabase desligado: os leads não serão salvos.</p>}
         {err && <p role="alert" style={{ color: C.red, fontSize: 13, margin: "12px 0 0" }}>⚠ {err}</p>}
       </div>
 
-      {mode === "regiao" && region && (
-        <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-          <h2 style={{ margin: "0 0 4px", fontSize: 15 }}>🧭 Onde prospectar: {region.niche}</h2>
-          <p style={{ margin: "0 0 14px", fontSize: 12, color: C.muted }}>
-            Índice de oportunidade (0–100): mais empresas com nota alta de oportunidade, mais empresas sem site e concorrência com menos avaliações = mais vendas possíveis e resultado mais rápido.
-          </p>
-          {region.results.map((r, i) => {
-            const s = r.summary;
-            return (
-              <div key={r.city} className="region-row" style={{ borderTop: i ? `1px solid ${C.border}` : "none" }}>
-                <strong style={{ width: 22, color: C.dim }}>{i + 1}</strong>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                    <strong style={{ fontSize: 14 }}>{r.city}</strong>
-                    {s && <strong style={{ color: scoreColor(s.opportunity), fontSize: 14 }}>{s.opportunity}</strong>}
-                  </div>
-                  {s ? (
-                    <>
-                      <div style={{ height: 6, background: C.panel2, borderRadius: 3, margin: "6px 0" }}>
-                        <div style={{ height: "100%", width: `${s.opportunity}%`, background: scoreColor(s.opportunity), borderRadius: 3 }} />
-                      </div>
-                      <div style={{ fontSize: 12, color: C.muted }}>
-                        {s.total} empresas · <span style={{ color: "#F87171" }}>{s.hot} quentes</span> · <span style={{ color: "#FBBF24" }}>{s.noSite} sem site</span> · média de {s.avgReviews} avaliações (líder: {s.leaderReviews})
-                      </div>
-                    </>
-                  ) : <div style={{ fontSize: 12, color: C.red }}>⚠ {r.error}</div>}
-                </div>
-                {s && s.total > 0 && (
-                  <button type="button" onClick={() => openQuery(r.query)} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>Ver leads →</button>
-                )}
-              </div>
-            );
-          })}
+      {mode === "regiao" && batches.length > 0 && (
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+          <span style={{ fontSize: 12, color: C.muted }}>Análises salvas:</span>
+          <select aria-label="Análises salvas" value={region?.batchId ?? ""} onChange={(e) => openBatch(e.target.value)}
+            style={{ ...input, width: "auto", fontSize: 12, padding: "7px 10px", cursor: "pointer" }}>
+            <option value="">— escolher —</option>
+            {batches.map((b) => (
+              <option key={b.batchId} value={b.batchId}>{b.niche} · {b.cities.length} cidades · {new Date(b.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</option>
+            ))}
+          </select>
+          <span style={{ fontSize: 11, color: C.dim }}>Reabrir não gasta buscas no Google.</span>
         </div>
       )}
 
-      {mode === "cidade" && (rows.length > 0 || queries.length > 0) && (
+      {mode === "regiao" && region && (
+        <RegionDashboard key={region.batchId ?? region.niche} region={region} projects={projects}
+          onOpenQuery={openQuery} onAddToProject={addToProject} onCreateProject={createProject} />
+      )}
+
+      {mode === "projetos" && (
+        <ProjectsPanel projects={projects} onOpen={openProject} onCreate={createProject} onDelete={deleteProject} />
+      )}
+
+      {mode === "cidade" && (rows.length > 0 || queries.length > 0 || !!projectFilter) && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
+          {projects.length > 0 && (
+            <select aria-label="Projeto" value={projectFilter} onChange={(e) => { setProjectFilter(e.target.value); load(activeQuery, e.target.value); }}
+              style={{ ...input, width: "auto", fontSize: 12, padding: "7px 10px", cursor: "pointer" }}>
+              <option value="">Todos os projetos</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>📁 {p.name}</option>)}
+            </select>
+          )}
           {queries.length > 0 && (
-            <select aria-label="Busca" value={activeQuery} onChange={(e) => { setActiveQuery(e.target.value); load(e.target.value); }}
+            <select aria-label="Busca" value={activeQuery} disabled={!!projectFilter} onChange={(e) => { setActiveQuery(e.target.value); load(e.target.value, ""); }}
               style={{ ...input, width: "auto", fontSize: 12, padding: "7px 10px", cursor: "pointer" }}>
               <option value="">Todas as buscas</option>
               {queries.map((q) => <option key={q} value={q}>{q}</option>)}
@@ -270,7 +310,14 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
                   {p.website && <> · <a href={p.website} target="_blank" rel="noreferrer" style={{ color: C.blue }}>Site atual</a></>}
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <select aria-label="Mudar status" value={st} onChange={(e) => update(p, { status: e.target.value as ProspectStatus })}
+                  {projects.length > 0 && (
+                    <select aria-label="Projeto do lead" value={p.project_id ?? ""} onChange={(e) => { update(p, { project_id: e.target.value || null }); setTimeout(loadProjects, 400); }}
+                      style={{ ...input, width: "auto", fontSize: 12, padding: "7px 10px", cursor: "pointer" }}>
+                      <option value="">Sem projeto</option>
+                      {projects.map((pr) => <option key={pr.id} value={pr.id}>📁 {pr.name}</option>)}
+                    </select>
+                  )}
+                  <select aria-label="Mudar status" value={st} onChange={(e) => { update(p, { status: e.target.value as ProspectStatus }); setTimeout(loadProjects, 400); }}
                     style={{ ...input, width: "auto", fontSize: 12, padding: "7px 10px", cursor: "pointer" }}>
                     {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                   </select>
@@ -280,7 +327,20 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
                   }} style={btn(primary)}>
                     {p.client_id ? "Abrir execução →" : "🎯 Trabalhar este lead →"}
                   </button>
+                  {p.id && (
+                    <button type="button" onClick={() => setSiteFor(siteFor === p.id ? null : p.id!)}
+                      style={btn(siteFor === p.id ? "#7C3AED" : C.panel2, siteFor === p.id ? "#fff" : C.blue, { border: `1px solid ${C.border}` })}>
+                      🌐 {siteFor === p.id ? "Fechar site" : "Site de prévia"}
+                    </button>
+                  )}
                 </div>
+                {siteFor === p.id && p.id && (
+                  <div className="dash-card" style={{ marginTop: 12 }}>
+                    <h3 className="dash-title">🌐 Site de prévia — {p.name}</h3>
+                    <p className="dash-sub">Gere, publique e mande o link no WhatsApp. A página fica marcada como prévia e fora do Google.</p>
+                    <SiteBuilder target={{ prospectId: p.id }} aiEnabled={aiEnabled} />
+                  </div>
+                )}
                 <textarea aria-label="Anotações" defaultValue={p.notes ?? ""} placeholder="Anotações da abordagem…"
                   onBlur={(e) => e.target.value !== (p.notes ?? "") && update(p, { notes: e.target.value })}
                   style={{ ...input, marginTop: 10, minHeight: 60, fontSize: 12.5, resize: "vertical" }} />
