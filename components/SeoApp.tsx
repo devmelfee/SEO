@@ -5,6 +5,7 @@ import { api, type Section, type Status } from "@/lib/api";
 import { PromptCard } from "./PromptCard";
 import { RealDataPanel } from "./RealDataPanel";
 import { UrlField, VerticalPicker } from "./Fields";
+import { Radar, type Prospect } from "./Radar";
 import { ClientsModal, ReportModal, SettingsModal, type Agency } from "./Modals";
 import { C, btn, input, label, primary } from "./styles";
 
@@ -26,6 +27,7 @@ export default function SeoApp() {
   const [settings, setSettings] = useState<Agency>({});
   const [status, setStatus] = useState<Status | null>(null);
   const [modal, setModal] = useState<null | "settings" | "report" | "clients">(null);
+  const [view, setView] = useState<"radar" | "exec">("radar");
   const [dbMsg, setDbMsg] = useState<{ t: string; c: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -139,6 +141,21 @@ export default function SeoApp() {
     } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); }
   };
 
+  /** Lead do Radar → cliente em execução, já com nicho, cidade, site e os concorrentes reais da busca. */
+  const startFromProspect = async (p: Prospect, competitors: string, vertical: string, city: string) => {
+    setView("exec");
+    if (p.client_id) { await openClient(p.client_id); return; }
+    const data: FormData = { ...applyDefaults({}, settings), clientName: p.name, clientUrl: p.website, vertical: vertical || settings.default_vertical || "", city: city || settings.default_city || "", realData: competitors };
+    setFormData(data); setResults({}); setCompleted([0]); setClientId(null); setActivePhase(1); setSession((s) => s + 1);
+    if (!supabaseOn) return;
+    try {
+      const c = await api<{ id: string }>("/api/clients", { body: { ...data, completedPhases: [0] } });
+      clientIdRef.current = c.id; setClientId(c.id);
+      if (p.id) await api(`/api/prospects/${p.id}`, { method: "PATCH", body: { client_id: c.id } });
+      flashDb("✓ lead virou cliente", C.green);
+    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); }
+  };
+
   const saveSettings = async (s: Agency) => {
     if (!supabaseOn) throw new Error("Configure o Supabase para salvar as configurações.");
     setSettings(await api<Agency>("/api/settings", { method: "PUT", body: s }));
@@ -148,7 +165,8 @@ export default function SeoApp() {
   const progress = Math.round((completed.length / PHASES.length) * 100);
   const resultCount = Object.values(results).filter((r) => r.content.trim()).length;
   const clientLabel = formData.clientName || formData.vertical;
-  const missingSetup = status && (!status.anthropic || !status.supabase);
+  // A IA é opcional (há o modo "colar resultado"); o banco não.
+  const missingSetup = status && !status.supabase;
 
   if (!hydrated) return null;
 
@@ -165,6 +183,12 @@ export default function SeoApp() {
             <div style={{ fontWeight: 800, fontSize: 15 }}>{settings.name || "SEO Local Agency"}</div>
             <div style={{ color: C.faint, fontSize: 12 }}>{settings.consultant ? `${settings.consultant} · ` : ""}Sistema de execução com IA</div>
           </div>
+          <nav className="tabs" aria-label="Seções">
+            {([["radar", "📡 Radar"], ["exec", "🎯 Execução"]] as const).map(([v, l]) => (
+              <button key={v} type="button" aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}
+                style={btn(view === v ? C.panel2 : "transparent", view === v ? C.text : C.dim, { border: `1px solid ${view === v ? C.borderBlue : "transparent"}` })}>{l}</button>
+            ))}
+          </nav>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
           {dbMsg && <span role="status" style={{ fontSize: 11, color: dbMsg.c, fontWeight: 600 }}>{dbMsg.t}</span>}
@@ -201,12 +225,17 @@ export default function SeoApp() {
         <div style={{ maxWidth: 1120, margin: "16px auto 0", padding: "0 16px" }}>
           <button type="button" onClick={() => setModal("settings")} style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "#1C1000",
             border: "1px solid #B4530960", borderRadius: 10, padding: "12px 16px", color: "#FCD34D", fontSize: 13 }}>
-            ⚠ Faltam credenciais: {[!status.anthropic && "IA (ANTHROPIC_API_KEY)", !status.supabase && "banco (Supabase)"].filter(Boolean).join(" e ")}.
+            ⚠ Banco desligado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY): nada está sendo salvo.
             {" "}Clique para ver o que configurar na Vercel.
           </button>
         </div>
       )}
 
+      {view === "radar" ? (
+        <div className="layout-single">
+          <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} onCreateClient={startFromProspect} />
+        </div>
+      ) : (
       <div className="layout">
         <aside className="sidebar">
           <p style={{ ...label, color: C.faint, fontSize: 10 }}>Fases</p>
@@ -285,6 +314,7 @@ export default function SeoApp() {
           )}
         </main>
       </div>
+      )}
     </div>
   );
 }

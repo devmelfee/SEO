@@ -104,3 +104,35 @@ do $$ declare p record; begin
     execute format('drop policy %I on public.%I', p.policyname, p.tablename);
   end loop;
 end $$;
+
+-- ── prospects (Radar: leads encontrados no Google Maps) ─────────────────────
+create table if not exists public.prospects (
+  id uuid primary key default gen_random_uuid(),
+  place_id text not null unique,
+  query text default '',
+  name text default '',
+  address text default '',
+  phone text default '',
+  website text default '',
+  maps_url text default '',
+  rating numeric,
+  reviews_count int default 0,
+  primary_type text default '',
+  types jsonb default '[]'::jsonb,
+  has_hours boolean default false,
+  photos_count int default 0,
+  business_status text default '',
+  lat double precision,
+  lng double precision,
+  rank_in_search int,
+  score int default 0,
+  issues jsonb default '[]'::jsonb,
+  status text not null default 'novo' check (status in ('novo','abordado','proposta','fechado','descartado')),
+  notes text default '',
+  client_id uuid references public.clients(id) on delete set null,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+create index if not exists prospects_score_idx on public.prospects (score desc);
+create index if not exists prospects_query_idx on public.prospects (query);
+alter table public.prospects enable row level security;
