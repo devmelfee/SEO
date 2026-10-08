@@ -245,7 +245,7 @@ export default function SeoApp() {
                 <RealDataPanel formData={formData} onChange={(v) => updateField("realData", v)} placesEnabled={!!status?.places} clientId={clientId} />
               )}
               {phase.parts!.map((part) => (
-                <PromptCard key={part.label} part={part} formData={formData} color={phase.color} saved={results[part.label]}
+                <PromptCard key={part.label} part={part} formData={formData} color={phase.color} saved={results[part.label]} aiEnabled={!!status?.anthropic}
                   onGenerated={onGenerated} onEdited={onEdited} />
               ))}
               {phase.tips && (

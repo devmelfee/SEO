@@ -9,13 +9,15 @@ type Props = {
   formData: FormData;
   color: string;
   saved?: Section;
+  /** false quando a ANTHROPIC_API_KEY não está configurada: o cartão vira "copiar prompt + colar resultado". */
+  aiEnabled: boolean;
   /** Texto novo da IA. */
   onGenerated: (label: string, text: string) => Promise<void>;
   /** Edição manual (já com debounce). */
   onEdited: (label: string, text: string) => Promise<void>;
 };
 
-export function PromptCard({ part, formData, color, saved, onGenerated, onEdited }: Props) {
+export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerated, onEdited }: Props) {
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">(saved ? "done" : "idle");
   const [original, setOriginal] = useState(saved?.original || saved?.content || "");
   const [text, setText] = useState(saved?.content ?? "");
@@ -26,7 +28,7 @@ export function PromptCard({ part, formData, color, saved, onGenerated, onEdited
   const [confirmRegen, setConfirmRegen] = useState(false);
 
   const filledPrompt = fill(part.prompt, formData);
-  const blocked = blockReason(part, formData);
+  const blocked = blockReason(part, formData) ?? (aiEnabled ? null : "IA desligada (falta ANTHROPIC_API_KEY). Copie o prompt, use no Claude.ai e cole o resultado com \"Colar resultado\".");
   const dirty = state === "done" && text !== original;
 
   // Autosave com debounce. O timer é limpo ao desmontar e a edição pendente é gravada na hora (antes se perdia).
@@ -72,6 +74,8 @@ export function PromptCard({ part, formData, color, saved, onGenerated, onEdited
   };
 
   const onGenerateClick = () => (dirty ? setConfirmRegen(true) : doGenerate());
+  /** Sem IA: abre o editor vazio para colar o texto gerado fora do app. */
+  const startManual = () => { setOriginal(""); setText(""); setState("done"); setEditing(true); };
   const showFlash = (m: string) => { setFlash(m); setTimeout(() => setFlash(""), 1800); };
 
   const badge =
@@ -93,6 +97,9 @@ export function PromptCard({ part, formData, color, saved, onGenerated, onEdited
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={async () => showFlash((await copyText(filledPrompt)) ? "prompt" : "erro")}
             style={btn(C.border, C.muted, { fontSize: 11, fontWeight: 600 })}>{flash === "prompt" ? "✓ Copiado" : "Copiar prompt"}</button>
+          {!aiEnabled && state !== "done" && (
+            <button type="button" onClick={startManual} style={btn(`linear-gradient(135deg,${color},${color}AA)`)}>📋 Colar resultado</button>
+          )}
           <button type="button" onClick={onGenerateClick} disabled={state === "loading" || !!blocked} title={blocked ?? ""}
             style={btn(state === "loading" || blocked ? C.border : `linear-gradient(135deg,${color},${color}AA)`,
               state === "loading" || blocked ? C.muted : "#fff", { cursor: state === "loading" || blocked ? "not-allowed" : "pointer" })}>
