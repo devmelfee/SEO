@@ -13,11 +13,11 @@ export async function GET() {
       { project_id: string; status: string; score: number }[];
     const stats = new Map<string, Record<string, number>>();
     for (const l of leads) {
-      const s = stats.get(l.project_id) ?? { total: 0, novo: 0, abordado: 0, proposta: 0, fechado: 0, descartado: 0, quentes: 0 };
+      const s = stats.get(l.project_id) ?? { total: 0, novo: 0, abordado: 0, respondeu: 0, proposta: 0, fechado: 0, descartado: 0, quentes: 0 };
       s.total++; s[l.status] = (s[l.status] ?? 0) + 1; if (l.score >= 50) s.quentes++;
       stats.set(l.project_id, s);
     }
-    return ok(projects.map((p) => ({ ...p, stats: stats.get(p.id) ?? { total: 0, novo: 0, abordado: 0, proposta: 0, fechado: 0, descartado: 0, quentes: 0 } })));
+    return ok(projects.map((p) => ({ ...p, stats: stats.get(p.id) ?? { total: 0, novo: 0, abordado: 0, respondeu: 0, proposta: 0, fechado: 0, descartado: 0, quentes: 0 } })));
   } catch (e) { return handle(e); }
 }
 

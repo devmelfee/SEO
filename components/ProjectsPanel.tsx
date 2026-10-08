@@ -4,12 +4,12 @@ import { C, btn, input, primary } from "./styles";
 
 export type Project = {
   id: string; name: string; niche: string; notes: string; created_by: string; updated_at: string;
-  stats: { total: number; novo: number; abordado: number; proposta: number; fechado: number; descartado: number; quentes: number };
+  stats: { total: number; novo: number; abordado: number; respondeu: number; proposta: number; fechado: number; descartado: number; quentes: number };
 };
 
 // Etapas do funil em ordem; cores de status reservadas para o andamento (com rótulo ao lado, nunca só a cor).
 const STAGES: [keyof Project["stats"], string, string][] = [
-  ["novo", "Novos", "#60A5FA"], ["abordado", "Abordados", "#FBBF24"], ["proposta", "Proposta", "#A78BFA"], ["fechado", "Fechados", "#10B981"],
+  ["novo", "Novos", "#60A5FA"], ["abordado", "Abordados", "#FBBF24"], ["respondeu", "Responderam", "#F472B6"], ["proposta", "Proposta", "#A78BFA"], ["fechado", "Fechados", "#10B981"],
 ];
 
 export function ProjectsPanel({ projects, onOpen, onCreate, onDelete }: {

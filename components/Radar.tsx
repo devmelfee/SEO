@@ -7,6 +7,8 @@ import { HOT, REGION_PRESETS } from "@/lib/market";
 import { RegionDashboard, type RegionResult } from "./RegionDashboard";
 import { ProjectsPanel, type Project } from "./ProjectsPanel";
 import { SiteBuilder } from "./SiteBuilder";
+import { OutreachComposer, OutreachQueue, type Sender } from "./Outreach";
+import { isDue } from "@/lib/outreach";
 import { C, btn, input, label, primary } from "./styles";
 
 export type Prospect = {
@@ -14,18 +16,19 @@ export type Prospect = {
   maps_url: string; rating: number | null; reviews_count: number; primary_type: string; has_hours: boolean;
   photos_count: number; rank_in_search: number; score: number; issues: Issue[]; status?: ProspectStatus; notes?: string;
   client_id?: string | null; project_id?: string | null;
+  contact_step?: number | null; last_contact_at?: string | null; next_followup_at?: string | null;
 };
 
-type Mode = "cidade" | "regiao" | "projetos";
+type Mode = "cidade" | "regiao" | "projetos" | "abordagem";
 const UI_KEY = "seo_radar_ui_v1";
 type UiState = { mode: Mode; vertical: string; city: string; max: 20 | 40 | 60; citiesText: string; activeQuery: string; projectFilter: string; batchId: string };
 function readUi(): Partial<UiState> { try { return JSON.parse(localStorage.getItem(UI_KEY) ?? "{}"); } catch { return {}; } }
 
 const STATUS_LABEL: Record<ProspectStatus, string> = {
-  novo: "Novo", abordado: "Abordado", proposta: "Proposta enviada", fechado: "Fechado", descartado: "Descartado",
+  novo: "Novo", abordado: "Abordado", respondeu: "Respondeu", proposta: "Proposta enviada", fechado: "Fechado", descartado: "Descartado",
 };
 const STATUS_COLOR: Record<ProspectStatus, string> = {
-  novo: C.blue, abordado: "#FBBF24", proposta: "#A78BFA", fechado: C.green, descartado: C.dim,
+  novo: C.blue, abordado: "#FBBF24", respondeu: "#F472B6", proposta: "#A78BFA", fechado: C.green, descartado: C.dim,
 };
 
 export function scoreColor(s: number) {
@@ -41,8 +44,8 @@ export function competitorsText(all: Prospect[], self: Prospect): string {
     `${self.website ? `site ${self.website}` : "SEM SITE"}. Problemas detectados: ${self.issues.map((i) => i.label).join(", ") || "nenhum"}.`;
 }
 
-export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: {
-  placesEnabled: boolean; supabaseOn: boolean; aiEnabled: boolean;
+export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, onCreateClient }: {
+  placesEnabled: boolean; supabaseOn: boolean; aiEnabled: boolean; sender: Sender;
   onCreateClient: (p: Prospect, competitors: string, vertical: string, city: string) => void;
 }) {
   // Estado da tela guardado no navegador: trocar de aba ou recarregar não perde a busca nem os filtros.
@@ -66,6 +69,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: 
   const [statusFilter, setStatusFilter] = useState<"" | ProspectStatus>("");
   const [open, setOpen] = useState<string | null>(null);
   const [siteFor, setSiteFor] = useState<string | null>(null);
+  const [waFor, setWaFor] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -162,12 +166,12 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: 
           Busca empresas no Google Maps, aponta o que está faltando em cada uma e ordena da melhor oportunidade para a pior.
         </p>
         <div role="tablist" style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-          {([["cidade", "🔎 Buscar numa cidade"], ["regiao", "🧭 Onde prospectar"], ["projetos", `📁 Projetos${projects.length ? ` (${projects.length})` : ""}`]] as const).map(([m, l]) => (
+          {([["cidade", "🔎 Buscar numa cidade"], ["regiao", "🧭 Onde prospectar"], ["projetos", `📁 Projetos${projects.length ? ` (${projects.length})` : ""}`], ["abordagem", "📲 Abordagem"]] as const).map(([m, l]) => (
             <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)}
               style={btn(mode === m ? "#7C3AED" : C.panel2, mode === m ? "#fff" : C.dim, { border: `1px solid ${mode === m ? "#7C3AED" : C.border}` })}>{l}</button>
           ))}
         </div>
-        {mode !== "projetos" && (<>
+        {(mode === "cidade" || mode === "regiao") && (<>
         <div className="radar-form">
           <div style={{ flex: 2 }}><label style={label} htmlFor="radar-niche">Nicho (digite qualquer um)</label>
             <input id="radar-niche" list="radar-verticals" value={vertical} onChange={(e) => setVertical(e.target.value)}
@@ -241,6 +245,19 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: 
         <ProjectsPanel projects={projects} onOpen={openProject} onCreate={createProject} onDelete={deleteProject} />
       )}
 
+      {mode === "abordagem" && (
+        <div>
+          {projects.length > 0 && (
+            <select aria-label="Projeto da fila" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}
+              style={{ ...input, width: "auto", fontSize: 12, padding: "7px 10px", cursor: "pointer", marginBottom: 12 }}>
+              <option value="">Todos os projetos</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>📁 {p.name}</option>)}
+            </select>
+          )}
+          <OutreachQueue key={projectFilter} projectId={projectFilter} sender={sender} onUpdated={() => { load(); loadProjects(); }} />
+        </div>
+      )}
+
       {mode === "cidade" && (rows.length > 0 || queries.length > 0 || !!projectFilter) && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 14 }}>
           {projects.length > 0 && (
@@ -286,6 +303,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: 
                   <strong style={{ fontSize: 14 }}>{p.name}</strong>
                   {(!p.website || p.issues.some((i) => i.code === "social_only")) && <span style={{ fontSize: 10, fontWeight: 800, color: "#1C1000", background: "#FBBF24", borderRadius: 4, padding: "2px 6px" }}>{p.website ? "SÓ REDE SOCIAL" : "SEM SITE"}</span>}
                   <span style={{ fontSize: 11, color: STATUS_COLOR[st] }}>● {STATUS_LABEL[st]}</span>
+                  {isDue(p.next_followup_at) && <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: "#DC2626", borderRadius: 4, padding: "2px 6px" }}>⏰ LEMBRETE</span>}
                 </div>
                 <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>
                   #{p.rank_in_search} na busca · ⭐ {p.rating ?? "–"} ({p.reviews_count}) · {p.phone || "sem telefone"}
@@ -333,7 +351,21 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, onCreateClient }: 
                       🌐 {siteFor === p.id ? "Fechar site" : "Site de prévia"}
                     </button>
                   )}
+                  {p.id && (
+                    <button type="button" onClick={() => setWaFor(waFor === p.id ? null : p.id!)}
+                      style={btn(waFor === p.id ? "#16A34A" : C.panel2, waFor === p.id ? "#fff" : "#4ADE80", { border: `1px solid ${C.border}` })}>
+                      📲 {waFor === p.id ? "Fechar abordagem" : "Abordar no WhatsApp"}
+                    </button>
+                  )}
                 </div>
+                {waFor === p.id && p.id && (
+                  <div className="dash-card" style={{ marginTop: 12 }}>
+                    <h3 className="dash-title">📲 Abordagem — {p.name}</h3>
+                    <OutreachComposer lead={p} sender={sender}
+                      leaderReviews={Math.max(0, ...rows.filter((r) => r.query === p.query && r.place_id !== p.place_id).map((r) => r.reviews_count))}
+                      onUpdated={(row) => { setRows((rs) => rs.map((r) => (r.place_id === p.place_id ? { ...r, ...row } : r))); setTimeout(loadProjects, 300); }} />
+                  </div>
+                )}
                 {siteFor === p.id && p.id && (
                   <div className="dash-card" style={{ marginTop: 12 }}>
                     <h3 className="dash-title">🌐 Site de prévia — {p.name}</h3>

@@ -250,7 +250,7 @@ export default function SeoApp() {
 
       {/* O Radar fica montado (só escondido) para não perder busca, filtros e análise ao trocar de aba. */}
       <div className="layout-single" hidden={view !== "radar"}>
-        <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} aiEnabled={!!status?.anthropic} onCreateClient={startFromProspect} />
+        <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} aiEnabled={!!status?.anthropic} sender={{ name: settings.name, consultant: settings.consultant }} onCreateClient={startFromProspect} />
       </div>
       {view === "exec" && (
       <div className="layout">

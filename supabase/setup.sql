@@ -178,3 +178,27 @@ alter table public.prospects add column if not exists project_id uuid references
 create index if not exists prospects_project_idx on public.prospects (project_id);
 alter table public.market_snapshots add column if not exists batch_id uuid;
 create index if not exists market_snapshots_batch_idx on public.market_snapshots (batch_id);
+
+-- ── Abordagem (WhatsApp): status "respondeu", sequência de follow-up e histórico ─
+alter table public.prospects drop constraint if exists prospects_status_check;
+alter table public.prospects add constraint prospects_status_check
+  check (status in ('novo','abordado','respondeu','proposta','fechado','descartado'));
+alter table public.prospects
+  add column if not exists contact_step int default 0,
+  add column if not exists last_contact_at timestamptz,
+  add column if not exists next_followup_at timestamptz;
+create index if not exists prospects_followup_idx on public.prospects (next_followup_at) where next_followup_at is not null;
+
+create table if not exists public.outreach_events (
+  id uuid primary key default gen_random_uuid(),
+  prospect_id uuid not null references public.prospects(id) on delete cascade,
+  step int not null default 1,
+  channel text not null default 'whatsapp' check (channel in ('whatsapp','ligacao','email','visita')),
+  kind text not null default 'enviado' check (kind in ('enviado','respondeu','sem_interesse')),
+  message text default '',
+  created_by text default '',
+  created_at timestamptz default now()
+);
+create index if not exists outreach_events_prospect_idx on public.outreach_events (prospect_id, created_at desc);
+create index if not exists outreach_events_day_idx on public.outreach_events (created_at desc);
+alter table public.outreach_events enable row level security;

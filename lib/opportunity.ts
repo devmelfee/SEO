@@ -73,5 +73,5 @@ export function socialNetwork(url?: string): string | null {
   return map.find(([re]) => re.test(host))?.[1] ?? null;
 }
 
-export const STATUSES = ["novo", "abordado", "proposta", "fechado", "descartado"] as const;
+export const STATUSES = ["novo", "abordado", "respondeu", "proposta", "fechado", "descartado"] as const;
 export type ProspectStatus = (typeof STATUSES)[number];
