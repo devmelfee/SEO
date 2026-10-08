@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { scoreOpportunity, type PlaceData } from "./opportunity.ts";
+import { scoreOpportunity, socialNetwork, type PlaceData } from "./opportunity.ts";
 
 const base: PlaceData = { id: "x", name: "A", website: "https://a.com", phone: "11 9999", rating: 4.8, reviews: 200,
   hasHours: true, photos: 10, types: ["dentist", "doctor"], status: "OPERATIONAL" };
@@ -37,4 +37,13 @@ test("sem nota é diferente de nota baixa", () => {
   const r = scoreOpportunity({ ...base, rating: undefined, reviews: 0 }, ctx);
   assert.ok(r.issues.some((i) => i.code === "no_rating"));
   assert.ok(!r.issues.some((i) => i.code === "low_rating"));
+});
+
+test("link de WhatsApp/Instagram não conta como site", () => {
+  assert.equal(socialNetwork("https://wa.me/message/X"), "WhatsApp");
+  assert.equal(socialNetwork("http://www.instagram.com/loja"), "Instagram");
+  assert.equal(socialNetwork("https://loja.com.br"), null);
+  const r = scoreOpportunity({ ...base, website: "https://instagram.com/loja" }, ctx);
+  assert.equal(r.issues[0].code, "social_only");
+  assert.equal(r.score, 35);
 });

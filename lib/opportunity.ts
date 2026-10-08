@@ -15,7 +15,7 @@ export type PlaceData = {
 };
 
 export type Issue = {
-  code: "no_website" | "few_reviews" | "behind_leader" | "low_rating" | "no_rating" | "no_hours" | "no_phone" | "few_photos" | "few_categories" | "closed";
+  code: "no_website" | "social_only" | "few_reviews" | "behind_leader" | "low_rating" | "no_rating" | "no_hours" | "no_phone" | "few_photos" | "few_categories" | "closed";
   label: string;
   detail: string;
   weight: number;
@@ -31,7 +31,9 @@ export function scoreOpportunity(p: PlaceData, ctx: SearchContext): { score: num
     return { score: 0, issues: [{ code: "closed", label: "Fechado", detail: `Status no Google: ${p.status}`, weight: 0 }] };
   }
 
+  const social = socialNetwork(p.website);
   if (!p.website?.trim()) add("no_website", "Sem site", "Não tem site no perfil do Google — oportunidade de criar um.", 35);
+  else if (social) add("social_only", "Sem site próprio", `O "site" do perfil é um link de ${social} — não ranqueia nem passa credibilidade como um site.`, 30);
 
   if (p.reviews < 10) add("few_reviews", "Poucas avaliações", `Só ${p.reviews} avaliação(ões).`, 20);
   else if (p.reviews < 30) add("few_reviews", "Poucas avaliações", `${p.reviews} avaliações — abaixo do mínimo competitivo (30+).`, 12);
@@ -56,6 +58,19 @@ export function scoreOpportunity(p: PlaceData, ctx: SearchContext): { score: num
   if (ctx.rank >= 4 && ctx.rank <= 20) score += 5;
   if (ctx.rank <= 3) score -= 10;
   return { score: Math.max(0, Math.min(100, Math.round(score))), issues };
+}
+
+/** WhatsApp, Instagram etc. cadastrados como site: não contam como site próprio. */
+export function socialNetwork(url?: string): string | null {
+  if (!url) return null;
+  let host = "";
+  try { host = new URL(url).hostname.replace(/^www\./, "").toLowerCase(); } catch { return null; }
+  const map: [RegExp, string][] = [
+    [/(^|\.)(wa\.me|whatsapp\.com|api\.whatsapp\.com)$/, "WhatsApp"], [/(^|\.)instagram\.com$/, "Instagram"],
+    [/(^|\.)(facebook\.com|fb\.com|fb\.me)$/, "Facebook"], [/(^|\.)(linktr\.ee|linktree\.com|beacons\.ai|bio\.link)$/, "Linktree"],
+    [/(^|\.)tiktok\.com$/, "TikTok"], [/(^|\.)(shopee\.com\.br|mercadolivre\.com\.br)$/, "marketplace"],
+  ];
+  return map.find(([re]) => re.test(host))?.[1] ?? null;
 }
 
 export const STATUSES = ["novo", "abordado", "proposta", "fechado", "descartado"] as const;

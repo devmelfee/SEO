@@ -76,11 +76,11 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
   };
 
   const visible = useMemo(() => rows
-    .filter((r) => !onlyNoSite || !r.website)
+    .filter((r) => !onlyNoSite || !r.website || r.issues.some((i) => i.code === "social_only"))
     .filter((r) => !statusFilter || (r.status ?? "novo") === statusFilter),
   [rows, onlyNoSite, statusFilter]);
 
-  const noSite = rows.filter((r) => !r.website).length;
+  const noSite = rows.filter((r) => !r.website || r.issues.some((i) => i.code === "social_only")).length;
   const hot = rows.filter((r) => r.score >= 60).length;
   const canSearch = placesEnabled && vertical.trim().length > 1 && city.trim().length > 1 && !busy;
 
@@ -151,7 +151,7 @@ export function Radar({ placesEnabled, supabaseOn, onCreateClient }: {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                   <strong style={{ fontSize: 14 }}>{p.name}</strong>
-                  {!p.website && <span style={{ fontSize: 10, fontWeight: 800, color: "#1C1000", background: "#FBBF24", borderRadius: 4, padding: "2px 6px" }}>SEM SITE</span>}
+                  {(!p.website || p.issues.some((i) => i.code === "social_only")) && <span style={{ fontSize: 10, fontWeight: 800, color: "#1C1000", background: "#FBBF24", borderRadius: 4, padding: "2px 6px" }}>{p.website ? "SÓ REDE SOCIAL" : "SEM SITE"}</span>}
                   <span style={{ fontSize: 11, color: STATUS_COLOR[st] }}>● {STATUS_LABEL[st]}</span>
                 </div>
                 <div style={{ fontSize: 12, color: C.muted, marginTop: 3 }}>
