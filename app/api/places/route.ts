@@ -35,8 +35,16 @@ export async function POST(req: Request) {
         ? " — No Google Cloud, na chave: Restrições de aplicativo = Nenhuma (não use 'Sites') e inclua 'Places API (New)' nas APIs permitidas."
         : res.status === 429 ? " — Cota do Google esgotada; tente mais tarde." : "";
       // O motivo real vem em error.details[].reason (ex.: BILLING_DISABLED, API_KEY_SERVICE_BLOCKED, SERVICE_DISABLED).
-      const reasons = (json?.error?.details ?? []).map((d: { reason?: string }) => d?.reason).filter(Boolean);
-      const reason = reasons.length ? ` [motivo: ${reasons.join(", ")}]` : "";
+      type Detail = { reason?: string; metadata?: Record<string, string> };
+      const details: Detail[] = json?.error?.details ?? [];
+      const info = [
+        json?.error?.status,
+        ...details.map((d) => d.reason),
+        // consumer = projeto do Google Cloud dono da chave; service = API chamada. Nada disso é segredo.
+        ...details.flatMap((d) => (d.metadata ? ["consumer", "service"].filter((k) => d.metadata![k]).map((k) => `${k}=${d.metadata![k]}`) : [])),
+      ].filter(Boolean);
+      console.error("Google Places erro:", res.status, JSON.stringify(json?.error ?? json).slice(0, 2000));
+      const reason = info.length ? ` [detalhes: ${info.join(" · ")}]` : " [Google não enviou detalhes]";
       return fail(502, `Google Places respondeu ${res.status}: ${json?.error?.message ?? "erro"}${reason}${hint}`);
     }
 
