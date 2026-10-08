@@ -1,5 +1,11 @@
 // Chamadas do navegador para as rotas do próprio app. Erro HTTP vira exceção com a mensagem do servidor.
 
+export class ApiError extends Error {
+  constructor(message: string, public code?: string) { super(message); }
+}
+/** Erro de limite de uso: a tela oferece "Solicitar mais" pelo WhatsApp do administrador. */
+export const isLimitError = (e: unknown) => e instanceof ApiError && e.code === "limit_reached";
+
 export async function api<T = any>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   const res = await fetch(path, {
     method: init?.method ?? (init?.body ? "POST" : "GET"),
@@ -7,8 +13,13 @@ export async function api<T = any>(path: string, init?: { method?: string; body?
     body: init?.body ? JSON.stringify(init.body) : undefined,
   });
   const json = await res.json().catch(() => null);
+  // Avisa a tela quando algo que gasta (busca no Google ou IA) rodou ou foi barrado pelo limite.
+  if (typeof window !== "undefined" && init?.body && /^\/api\/(radar|places|generate|sites)/.test(path)) {
+    window.dispatchEvent(new CustomEvent("usage-changed"));
+    if (json?.error?.code === "limit_reached") window.dispatchEvent(new CustomEvent("usage-limit", { detail: json.error.message }));
+  }
   if (res.status === 401 && typeof window !== "undefined") window.location.href = "/login";
-  if (!res.ok) throw new Error(json?.error?.message ?? `Erro ${res.status}`);
+  if (!res.ok) throw new ApiError(json?.error?.message ?? `Erro ${res.status}`, json?.error?.code);
   return json?.data as T;
 }
 

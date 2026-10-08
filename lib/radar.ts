@@ -15,8 +15,10 @@ const FIELDS = [
 export async function runRadarSearch(query: string, max: number) {
   const places: any[] = [];
   let pageToken: string | undefined;
+  let requests = 0;
   do {
     const json = await searchText({ textQuery: query, pageSize: 20, ...(pageToken ? { pageToken } : {}) }, FIELDS);
+    requests++;
     places.push(...(json.places ?? []));
     pageToken = json.nextPageToken;
   } while (pageToken && places.length < max);
@@ -39,7 +41,7 @@ export async function runRadarSearch(query: string, max: number) {
     };
   });
 
-  if (!supabaseConfigured() || !rows.length) return { saved: false, prospects: rows.sort((a, b) => b.score - a.score) };
+  if (!supabaseConfigured() || !rows.length) return { saved: false, requests, prospects: rows.sort((a, b) => b.score - a.score) };
   const saved = check(await db().from("prospects").upsert(rows, { onConflict: "place_id" }).select("*")) as any[];
-  return { saved: true, prospects: saved.sort((a, b) => b.score - a.score) };
+  return { saved: true, requests, prospects: saved.sort((a, b) => b.score - a.score) };
 }

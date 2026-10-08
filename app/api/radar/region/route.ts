@@ -5,6 +5,8 @@ import { GoogleError } from "@/lib/google";
 import { runRadarSearch } from "@/lib/radar";
 import { summarizeMarket } from "@/lib/market";
 import { check } from "@/lib/http";
+import { currentUser } from "@/lib/session";
+import { guard, PLACES_USD, recordUsage } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -22,6 +24,9 @@ export async function POST(req: Request) {
   try {
     const { niche, cities } = Body.parse(await req.json());
     const unique = [...new Set(cities)];
+    const me = await currentUser();
+    await guard(me, "places", unique.length);
+    let requests = 0;
     const results: { city: string; query: string; error?: string; summary?: ReturnType<typeof summarizeMarket> }[] = [];
 
     // 4 buscas por vez: rápido sem estourar a cota do Google.
@@ -29,7 +34,8 @@ export async function POST(req: Request) {
       const batch = await Promise.all(unique.slice(i, i + 4).map(async (city) => {
         const query = `${niche} em ${city}`;
         try {
-          const { prospects } = await runRadarSearch(query, 20);
+          const { prospects, requests: n } = await runRadarSearch(query, 20);
+          requests += n;
           return { city, query, summary: summarizeMarket(prospects) };
         } catch (e) {
           if (e instanceof GoogleError && e.status === 503) throw e; // sem chave: aborta tudo
@@ -39,6 +45,7 @@ export async function POST(req: Request) {
       results.push(...batch);
     }
 
+    await recordUsage(me, { kind: "places", action: "onde_prospectar", query: `${niche} em ${unique.length} cidades`, units: requests, cost_usd: requests * PLACES_USD });
     const batchId = crypto.randomUUID();
     if (supabaseConfigured()) {
       const rows = results.filter((r) => r.summary).map((r) => ({

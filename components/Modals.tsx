@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { CURRENCIES, slugify, type FormData } from "@/lib/phases";
 import { api, copyText, downloadTxt, generateText, type ClientRow, type Section, type Status } from "@/lib/api";
+import { whatsappNumber } from "@/lib/site";
 import { C, btn, input, label, overlay, primary } from "./styles";
 
 export type Agency = {
@@ -10,7 +11,7 @@ export type Agency = {
   monthly_price?: string; trial_price?: string; client_goal?: number | null;
 };
 
-function Shell({ title, subtitle, onClose, width = 560, children, footer }: {
+export function Shell({ title, subtitle, onClose, width = 560, children, footer }: {
   title: string; subtitle?: string; onClose: () => void; width?: number; children: React.ReactNode; footer?: React.ReactNode;
 }) {
   useEffect(() => {
@@ -309,7 +310,7 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
 
 // ─── Equipe ──────────────────────────────────────────────────────────────────
 
-type Member = { email: string; role: "admin" | "member"; added_by: string; created_at: string };
+type Member = { email: string; role: "admin" | "member"; added_by: string; created_at: string; phone: string };
 
 function TeamTab() {
   const [data, setData] = useState<{ me: { email: string; role: string }; members: Member[] } | null>(null);
@@ -323,6 +324,10 @@ function TeamTab() {
   const add = async (e: React.FormEvent) => {
     e.preventDefault(); setErr("");
     try { await api("/api/team", { body: { email, role } }); setEmail(""); load(); } catch (x) { setErr((x as Error).message); }
+  };
+  const savePhone = async (m: string, phone: string) => {
+    setErr("");
+    try { await api("/api/team", { method: "PATCH", body: { email: m, phone } }); load(); } catch (x) { setErr((x as Error).message); }
   };
   const remove = async (m: string) => {
     if (!confirm(`Remover o acesso de ${m}?`)) return;
@@ -352,6 +357,14 @@ function TeamTab() {
             <div style={{ fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis" }}>{m.email}</div>
             <div style={{ fontSize: 11, color: C.muted }}>{m.role === "admin" ? "Administrador" : "Membro"} · liberado por {m.added_by || "—"}</div>
           </div>
+          {(isAdmin || m.email === data.me.email.toLowerCase()) ? (
+            <input key={m.phone} defaultValue={m.phone} placeholder="Celular com DDD" aria-label={`Telefone de ${m.email}`}
+              onBlur={(e) => e.target.value.trim() !== (m.phone ?? "") && savePhone(m.email, e.target.value.trim())}
+              style={{ ...input, width: 150, fontSize: 12, padding: "6px 8px" }} />
+          ) : <span style={{ fontSize: 12, color: C.muted }}>{m.phone || "—"}</span>}
+          {m.phone && whatsappNumber(m.phone) && (
+            <a href={`https://wa.me/${whatsappNumber(m.phone)}`} target="_blank" rel="noreferrer" title="Abrir WhatsApp" style={{ ...btn("#16A34A", "#fff", { fontSize: 12, padding: "6px 9px" }), textDecoration: "none" }}>📲</a>
+          )}
           {isAdmin && m.email !== data.me.email.toLowerCase() && (
             <button type="button" onClick={() => remove(m.email)} style={btn("#1C0A0A", C.red)}>Remover</button>
           )}

@@ -73,3 +73,31 @@ export function waLink(phone: string, text: string): string | null {
   const n = whatsappNumber(phone);
   return n ? `https://wa.me/${n}?text=${encodeURIComponent(text)}` : null;
 }
+
+/** Etapa em que o lead está: 1 = 1º contato, 2 = lembrete do 2º dia, 3 = último lembrete, 4 = sequência concluída. */
+export function stageOf(contactStep: number | null | undefined): 1 | 2 | 3 | 4 {
+  const s = contactStep ?? 0;
+  return s <= 0 ? 1 : s >= MAX_STEP ? 4 : ((s + 1) as 2 | 3);
+}
+
+export type StepDate = { step: number; date: string | null; done: boolean };
+
+/** Data de cada etapa: a real (quando já foi enviada) ou a prevista pela sequência. */
+export function stepDates(contactStep: number | null | undefined, sent: Record<number, string>, nextAt: string | null | undefined): StepDate[] {
+  const out: StepDate[] = [];
+  let prev: Date | null = null;
+  for (let step = 1; step <= MAX_STEP; step++) {
+    if (sent[step]) { prev = new Date(sent[step]); out.push({ step, date: sent[step], done: true }); continue; }
+    let planned: Date | null = null;
+    if (step === (contactStep ?? 0) + 1 && nextAt) planned = new Date(nextAt);
+    else if (prev && FOLLOWUP_DAYS[step - 1] != null) planned = nextFollowup(step - 1, prev);
+    out.push({ step, date: planned?.toISOString() ?? null, done: false });
+    prev = planned;
+  }
+  return out;
+}
+
+/** Intervalo entre envios no modo sequência (45–90 s): ritmo de gente, não de robô. */
+export function cooldownMs(rand: number = Math.random()): number {
+  return Math.round(45_000 + Math.min(1, Math.max(0, rand)) * 45_000);
+}

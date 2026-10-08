@@ -202,3 +202,26 @@ create table if not exists public.outreach_events (
 create index if not exists outreach_events_prospect_idx on public.outreach_events (prospect_id, created_at desc);
 create index if not exists outreach_events_day_idx on public.outreach_events (created_at desc);
 alter table public.outreach_events enable row level security;
+
+-- Controle de gastos e limites por usuário (consultas ao Google Places e gerações de IA).
+create table if not exists public.usage_events (
+  id bigserial primary key,
+  user_email text not null default '',
+  kind text not null check (kind in ('places','llm')),
+  action text not null default '',
+  query text not null default '',
+  units int not null default 1,
+  model text,
+  input_tokens int,
+  output_tokens int,
+  cost_usd numeric(12,6) not null default 0,
+  created_at timestamptz not null default now()
+);
+create index if not exists usage_events_user_time on public.usage_events (user_email, created_at desc);
+create index if not exists usage_events_time on public.usage_events (created_at desc);
+alter table public.usage_events enable row level security;
+alter table public.team_members add column if not exists phone text not null default '';
+alter table public.team_members add column if not exists limits jsonb;
+alter table public.team_members add column if not exists usage_reset_at timestamptz;
+alter table public.agency_settings add column if not exists default_limits jsonb;
+alter table public.agency_settings add column if not exists usd_brl numeric(8,4) not null default 5.5;

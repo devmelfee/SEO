@@ -35,3 +35,14 @@ test("link só para celular", () => {
   assert.match(waLink("(11) 91234-5678", "oi")!, /^https:\/\/wa\.me\/5511912345678\?text=oi$/);
   assert.equal(waLink("(11) 4444-0000", "oi"), null);
 });
+
+test("etapa e datas de cada passo", async () => {
+  const { stageOf, stepDates, cooldownMs } = await import("./outreach.ts");
+  assert.equal(stageOf(null), 1); assert.equal(stageOf(1), 2); assert.equal(stageOf(2), 3); assert.equal(stageOf(3), 4);
+  const d = stepDates(1, { 1: "2026-10-06T12:00:00.000Z" }, "2026-10-08T12:00:00.000Z");
+  assert.deepEqual(d.map((x) => x.done), [true, false, false]);
+  assert.equal(d[1].date, "2026-10-08T12:00:00.000Z");
+  assert.ok(d[2].date && new Date(d[2].date) > new Date(d[1].date!)); // último = lembrete + 3 dias
+  assert.equal(stepDates(0, {}, null)[0].date, null);
+  assert.equal(cooldownMs(0), 45_000); assert.equal(cooldownMs(1), 90_000);
+});

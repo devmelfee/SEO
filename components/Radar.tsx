@@ -9,6 +9,7 @@ import { ProjectsPanel, type Project } from "./ProjectsPanel";
 import { SiteBuilder } from "./SiteBuilder";
 import { OutreachComposer, OutreachQueue, type Sender } from "./Outreach";
 import { isDue } from "@/lib/outreach";
+import { UsageBar, type MyUsage } from "./Usage";
 import { C, btn, input, label, primary } from "./styles";
 
 export type Prospect = {
@@ -44,8 +45,8 @@ export function competitorsText(all: Prospect[], self: Prospect): string {
     `${self.website ? `site ${self.website}` : "SEM SITE"}. Problemas detectados: ${self.issues.map((i) => i.label).join(", ") || "nenhum"}.`;
 }
 
-export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, onCreateClient }: {
-  placesEnabled: boolean; supabaseOn: boolean; aiEnabled: boolean; sender: Sender;
+export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onCreateClient }: {
+  placesEnabled: boolean; supabaseOn: boolean; aiEnabled: boolean; sender: Sender; usage: MyUsage | null;
   onCreateClient: (p: Prospect, competitors: string, vertical: string, city: string) => void;
 }) {
   // Estado da tela guardado no navegador: trocar de aba ou recarregar não perde a busca nem os filtros.
@@ -160,6 +161,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, onCreateCl
 
   return (
     <div>
+      <UsageBar u={usage} />
       <div style={{ background: C.panel, border: `1px solid #7C3AED40`, borderLeft: "4px solid #7C3AED", borderRadius: 12, padding: "18px 22px", marginBottom: 20 }}>
         <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>📡 Radar de oportunidades</h1>
         <p style={{ margin: "4px 0 16px", fontSize: 13, color: C.dim }}>

@@ -8,6 +8,7 @@ import { UrlField, VerticalPicker } from "./Fields";
 import { Radar, type Prospect } from "./Radar";
 import { SiteBuilder } from "./SiteBuilder";
 import { ClientsModal, ReportModal, SettingsModal, type Agency } from "./Modals";
+import { LimitBanner, UsageModal, useMyUsage } from "./Usage";
 import { C, btn, input, label, primary } from "./styles";
 
 const DRAFT_KEY = "seo_draft_v2";
@@ -27,7 +28,8 @@ export default function SeoApp() {
   const [session, setSession] = useState(0);
   const [settings, setSettings] = useState<Agency>({});
   const [status, setStatus] = useState<Status | null>(null);
-  const [modal, setModal] = useState<null | "settings" | "report" | "clients">(null);
+  const [modal, setModal] = useState<null | "settings" | "report" | "clients" | "usage">(null);
+  const [usage] = useMyUsage();
   const [view, setView] = useState<"radar" | "exec">(() => {
     try { return localStorage.getItem("seo_view") === "exec" ? "exec" : "radar"; } catch { return "radar"; }
   });
@@ -191,6 +193,7 @@ export default function SeoApp() {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.text }}>
       {modal === "settings" && <SettingsModal settings={settings} status={status} onSave={saveSettings} onClose={() => setModal(null)} />}
       {modal === "report" && <ReportModal results={results} formData={formData} agency={settings} onClose={() => setModal(null)} onReset={reset} />}
+      {modal === "usage" && <UsageModal onClose={() => setModal(null)} />}
       {modal === "clients" && <ClientsModal currentId={clientId} onOpen={openClient} onClose={() => setModal(null)} />}
 
       <header className="topbar">
@@ -222,6 +225,9 @@ export default function SeoApp() {
             style={btn(resultCount ? primary : C.panel2, resultCount ? "#fff" : C.faint, { border: resultCount ? "none" : `1px solid ${C.border}` })}>
             📋 Relatório{resultCount ? ` (${resultCount})` : ""}
           </button>
+          {usage?.role === "admin" && (
+            <button type="button" onClick={() => setModal("usage")} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>📊 Gastos</button>
+          )}
           <button type="button" aria-label="Configurações" onClick={() => setModal("settings")} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}`, fontSize: 14 })}>⚙️</button>
           <button type="button" aria-label="Novo cliente" title="Novo cliente"
             onClick={() => (resultCount || clientLabel) && !confirm("Começar um cliente novo? O atual continua salvo em Clientes.") ? null : reset()}
@@ -238,6 +244,8 @@ export default function SeoApp() {
         <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#0D9488,#7C3AED)", transition: "width .5s" }} />
       </div>
 
+      <div style={{ padding: "0 16px" }}><LimitBanner u={usage} /></div>
+
       {missingSetup && (
         <div style={{ maxWidth: 1120, margin: "16px auto 0", padding: "0 16px" }}>
           <button type="button" onClick={() => setModal("settings")} style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "#1C1000",
@@ -250,7 +258,7 @@ export default function SeoApp() {
 
       {/* O Radar fica montado (só escondido) para não perder busca, filtros e análise ao trocar de aba. */}
       <div className="layout-single" hidden={view !== "radar"}>
-        <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} aiEnabled={!!status?.anthropic} sender={{ name: settings.name, consultant: settings.consultant }} onCreateClient={startFromProspect} />
+        <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} aiEnabled={!!status?.anthropic} sender={{ name: settings.name, consultant: settings.consultant }} usage={usage} onCreateClient={startFromProspect} />
       </div>
       {view === "exec" && (
       <div className="layout">

@@ -35,7 +35,7 @@ export async function middleware(req: NextRequest) {
   if (!user) return deny(401, "Sessão expirada. Entre novamente.", `/login?next=${encodeURIComponent(pathname)}`);
   if (LOGGED_ONLY.includes(pathname)) return res;
 
-  const role = await membership(user.email).catch(() => null);
+  const role = await membership(user.email, user.user_metadata?.phone).catch(() => null);
   if (!role) return deny(403, "Seu e-mail ainda não foi liberado pelo administrador.", "/sem-acesso");
   return res;
 }

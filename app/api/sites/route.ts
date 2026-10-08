@@ -4,6 +4,8 @@ import { db } from "@/lib/supabase";
 import { currentUser } from "@/lib/session";
 import { check, fail, handle, ok } from "@/lib/http";
 import { generate } from "@/lib/claude";
+import { guard, recordUsage } from "@/lib/usage";
+import { llmCostUsd } from "@/lib/limits";
 import { buildSiteHtml, buildSitePrompt, extractHtml, siteSlug, type SiteData } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -63,7 +65,12 @@ export async function POST(req: Request) {
       if (!html) return fail(400, "O texto colado não é um HTML completo (precisa ter <html> … </html>).");
     } else {
       const { system, prompt } = buildSitePrompt(data);
-      html = extractHtml(await generate(system, prompt, 16000));
+      const who = await currentUser();
+      await guard(who, "llm", 1);
+      const g = await generate(system, prompt, 16000);
+      await recordUsage(who, { kind: "llm", action: "site_ia", query: `${data.name} — ${data.city}`, units: 1, model: g.model,
+        input_tokens: g.inputTokens, output_tokens: g.outputTokens, cost_usd: llmCostUsd(g.model, g.inputTokens, g.outputTokens) });
+      html = extractHtml(g.text);
       if (!html) return fail(502, "A IA não devolveu um HTML válido. Tente de novo ou use o modelo.");
     }
 

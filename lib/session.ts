@@ -11,6 +11,6 @@ export async function currentUser(): Promise<{ email: string; role: Role } | nul
   });
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
-  const role = await membership(user.email);
+  const role = await membership(user.email, user.user_metadata?.phone);
   return role ? { email: user.email, role } : null;
 }

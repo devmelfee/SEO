@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { createBrowserClient } from "@supabase/ssr";
+import { whatsappNumber } from "@/lib/site";
 import { C, btn, input, primary } from "./styles";
 
 type Mode = "login" | "cadastro" | "recuperar" | "nova-senha";
@@ -25,6 +26,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [password2, setPassword2] = useState("");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(initialError);
   const [done, setDone] = useState("");
@@ -55,7 +57,10 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
       if (mode === "cadastro") {
         if (password.length < 8) throw new Error("A senha precisa ter pelo menos 8 caracteres.");
         if (password !== password2) throw new Error("As senhas não conferem.");
-        const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: `${origin}/auth/callback?next=/` } });
+        if (!whatsappNumber(phone)) throw new Error("Informe um celular com DDD, ex.: (11) 98888-7777.");
+        const { data, error } = await supabase.auth.signUp({
+          email, password, options: { emailRedirectTo: `${origin}/auth/callback?next=/`, data: { phone: phone.trim() } },
+        });
         if (error) throw error;
         // Supabase devolve usuário sem identidades quando o e-mail já existe (não revela por segurança).
         if (data.user && data.user.identities?.length === 0) throw new Error("already registered");
@@ -90,6 +95,10 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
         <form onSubmit={submit}>
           {showEmail && <Field id="email" label="E-mail">
             <input id="email" type="email" required autoFocus autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} style={input} />
+          </Field>}
+          {mode === "cadastro" && <Field id="phone" label="Celular / WhatsApp (com DDD)">
+            <input id="phone" type="tel" required autoComplete="tel" inputMode="tel" placeholder="(11) 98888-7777" value={phone}
+              onChange={(e) => setPhone(e.target.value)} style={input} />
           </Field>}
           {showPassword && <Field id="pw" label={mode === "nova-senha" ? "Nova senha (mín. 8 caracteres)" : mode === "cadastro" ? "Senha (mín. 8 caracteres)" : "Senha"}>
             <input id="pw" type="password" required autoFocus={!showEmail} autoComplete={mode === "login" ? "current-password" : "new-password"}

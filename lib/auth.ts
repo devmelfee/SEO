@@ -25,15 +25,22 @@ export function authClient(cookies: CookieStore) {
 }
 
 /** Papel do e-mail na equipe, ou null se não tem acesso. Bootstrap: equipe vazia → primeiro vira admin. */
-export async function membership(email: string | undefined | null): Promise<Role | null> {
+export async function membership(email: string | undefined | null, signupPhone?: unknown): Promise<Role | null> {
   if (!email) return null;
   const e = email.toLowerCase();
-  const { data, error } = await db().from("team_members").select("role").eq("email", e).maybeSingle();
+  const { data, error } = await db().from("team_members").select("role,phone").eq("email", e).maybeSingle();
   if (error) throw new Error("Equipe: " + error.message);
-  if (data) return data.role as Role;
+  if (data) {
+    // Telefone informado no cadastro entra na equipe na primeira vez que a pessoa usa o app.
+    if (!data.phone && typeof signupPhone === "string" && signupPhone.trim()) {
+      await db().from("team_members").update({ phone: signupPhone.trim().slice(0, 30) }).eq("email", e);
+    }
+    return data.role as Role;
+  }
   const { count } = await db().from("team_members").select("email", { count: "exact", head: true });
   if (count === 0) {
-    const { error: insErr } = await db().from("team_members").insert({ email: e, role: "admin", added_by: "primeiro acesso" });
+    const phone = typeof signupPhone === "string" ? signupPhone.trim().slice(0, 30) : "";
+    const { error: insErr } = await db().from("team_members").insert({ email: e, role: "admin", added_by: "primeiro acesso", phone });
     if (!insErr) return "admin";
   }
   return null;

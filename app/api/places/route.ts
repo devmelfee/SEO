@@ -2,6 +2,8 @@ import { z } from "zod";
 import { db, supabaseConfigured } from "@/lib/supabase";
 import { fail, handle, ok } from "@/lib/http";
 import { formatPlaces, type Place } from "@/lib/places";
+import { currentUser } from "@/lib/session";
+import { guard, PLACES_USD, recordUsage } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,8 @@ export async function POST(req: Request) {
     const key = process.env.GOOGLE_PLACES_API_KEY;
     if (!key) return fail(503, "GOOGLE_PLACES_API_KEY não configurada. Você pode colar os dados dos concorrentes à mão.");
     const { query, clientId } = Body.parse(await req.json());
+    const me = await currentUser();
+    await guard(me, "places", 1);
 
     const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
       method: "POST",
@@ -48,6 +52,7 @@ export async function POST(req: Request) {
       return fail(502, `Google Places respondeu ${res.status}: ${json?.error?.message ?? "erro"}${reason}${hint}`);
     }
 
+    await recordUsage(me, { kind: "places", action: "concorrentes", query, units: 1, cost_usd: PLACES_USD });
     const places: Place[] = json.places ?? [];
     const text = formatPlaces(places);
 
