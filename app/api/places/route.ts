@@ -34,7 +34,10 @@ export async function POST(req: Request) {
       const hint = res.status === 403
         ? " — No Google Cloud, na chave: Restrições de aplicativo = Nenhuma (não use 'Sites') e inclua 'Places API (New)' nas APIs permitidas."
         : res.status === 429 ? " — Cota do Google esgotada; tente mais tarde." : "";
-      return fail(502, `Google Places respondeu ${res.status}: ${json?.error?.message ?? "erro"}${hint}`);
+      // O motivo real vem em error.details[].reason (ex.: BILLING_DISABLED, API_KEY_SERVICE_BLOCKED, SERVICE_DISABLED).
+      const reasons = (json?.error?.details ?? []).map((d: { reason?: string }) => d?.reason).filter(Boolean);
+      const reason = reasons.length ? ` [motivo: ${reasons.join(", ")}]` : "";
+      return fail(502, `Google Places respondeu ${res.status}: ${json?.error?.message ?? "erro"}${reason}${hint}`);
     }
 
     const places: Place[] = json.places ?? [];
