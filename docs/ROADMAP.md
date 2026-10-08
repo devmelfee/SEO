@@ -76,9 +76,17 @@ Fila combinada para executar depois, na ordem. Cada item diz o objetivo, o que m
 
 ---
 
+## 6. API: próximos passos (integrações)
+
+- **Webhooks:** o sistema avisa o seu CRM na hora (POST assinado com HMAC) quando um lead é criado, muda de status, responde ou aceita a proposta. Assim o CRM não precisa ficar perguntando.
+- **Rodar busca pela API:** `POST /api/v1/searches {"query": "Pet shop em Jundiaí"}`. Conta no limite de buscas da chave, porque cada busca custa no Google.
+- **Conectores prontos:** um modelo para Zapier/Make e um para Google Planilhas (importação automática do CSV).
+- **Limite e consumo por chave** no painel de Gastos.
+
 ### Já entregue
 - Radar com nota de oportunidade, "Onde prospectar" e projetos.
 - Abordagem pelo WhatsApp com etapas, datas e envio em sequência com intervalo.
 - Controle de gastos e limites por usuário, com pedido de mais buscas pelo WhatsApp.
 - Escolha do modelo de IA (Rápido, Equilibrado, Premium) com o comparativo de custos.
 - Execução em 4 etapas, com proposta pública e aceite.
+- API pública v1 (leads, buscas, projetos, CSV e atualização de status), com chaves por integração.

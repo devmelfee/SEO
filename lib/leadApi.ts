@@ -68,7 +68,7 @@ export function toPublicLead(p: Row, siteUrl: string | null = null) {
 }
 
 const CSV_COLS: [string, (l: PublicLead) => unknown][] = [
-  ["id", (l) => l.id], ["nome", (l) => l.name], ["telefone", (l) => l.phone], ["whatsapp", (l) => l.whatsapp],
+  ["id", (l) => l.id], ["nome", (l) => l.name], ["telefone", (l) => l.phone], ["whatsapp", (l) => l.whatsapp?.slice(1)],
   ["site", (l) => l.website], ["tem_site_proprio", (l) => (l.has_own_site ? "sim" : "não")], ["endereco", (l) => l.address],
   ["nicho", (l) => l.niche], ["cidade", (l) => l.city], ["nota_google", (l) => l.rating], ["avaliacoes", (l) => l.reviews_count],
   ["nota_oportunidade", (l) => l.opportunity_score], ["problemas", (l) => l.issues.map((i: { label: string }) => i.label).join("; ")],

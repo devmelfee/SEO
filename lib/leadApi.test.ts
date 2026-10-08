@@ -40,3 +40,8 @@ test("CSV: BOM, ';', aspas e proteção contra fórmula", () => {
   assert.match(csv, /"'=HYPERLINK\(""x""\)"/);
   assert.match(csv, /"Rua A; 10"/);
 });
+
+test("CSV: WhatsApp só com dígitos (sem + que o Excel trata como fórmula)", () => {
+  const csv = leadsToCsv([toPublicLead(row)]);
+  assert.match(csv, /;5511988887777;/);
+});
