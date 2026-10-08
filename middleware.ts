@@ -5,7 +5,9 @@ import { authClient, authConfigured, membership } from "@/lib/auth";
 const PUBLIC = ["/login", "/cadastro", "/recuperar", "/auth/callback", "/api/status"];
 // Sites de prévia (/s/…) e propostas (/p/…) são públicos: são os links que vão para o cliente.
 // A página de apresentação (/apresentacao) e as imagens dela também.
-const isPublic = (p: string) => PUBLIC.includes(p) || /^\/[sp]\/[a-z0-9-]+$/.test(p) || /^\/apresentacao(\/[a-z0-9-]+\.png)?$/.test(p);
+const isPublic = (p: string) => PUBLIC.includes(p) || /^\/[sp]\/[a-z0-9-]+$/.test(p) || /^\/apresentacao(\/[a-z0-9-]+\.png)?$/.test(p)
+  // API pública v1 e a documentação: a chave é validada dentro de cada rota, não por cookie.
+  || /^\/api\/v1(\/.*)?$/.test(p) || p === "/api-docs";
 // Exigem login, mas não fazer parte da equipe (trocar senha, aviso de acesso pendente).
 const LOGGED_ONLY = ["/nova-senha", "/sem-acesso", "/api/logout"];
 

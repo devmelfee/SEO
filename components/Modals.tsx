@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { CURRENCIES, slugify, type FormData } from "@/lib/phases";
 import { api, copyText, downloadTxt, generateText, type ClientRow, type Section, type Status } from "@/lib/api";
 import { whatsappNumber } from "@/lib/site";
+import { ApiTab } from "./ApiKeys";
 import { C, btn, input, label, overlay, primary } from "./styles";
 
 export type Agency = {
@@ -41,7 +42,7 @@ export function Shell({ title, subtitle, onClose, width = 560, children, footer 
 export function SettingsModal({ settings, status, onSave, onClose }: {
   settings: Agency; status: Status | null; onSave: (s: Agency) => Promise<void>; onClose: () => void;
 }) {
-  const [tab, setTab] = useState<"agency" | "comercial" | "defaults" | "team" | "status">("agency");
+  const [tab, setTab] = useState<"agency" | "comercial" | "defaults" | "team" | "api" | "status">("agency");
   const [form, setForm] = useState<Agency>(settings);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [err, setErr] = useState("");
@@ -77,8 +78,8 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
           {state === "saved" ? "✓ Salvo!" : state === "saving" ? "Salvando…" : "Salvar"}
         </button>
       </>}>
-      <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-        {([["agency", "Agência"], ["comercial", "Comercial"], ["defaults", "Padrões"], ["team", "Equipe"], ["status", "Conexões"]] as const).map(([t, l]) => (
+      <div className="chips" style={{ gap: 4, marginBottom: 18, borderBottom: `1px solid ${C.border}` }}>
+        {([["agency", "Agência"], ["comercial", "Comercial"], ["defaults", "Padrões"], ["team", "Equipe"], ["api", "API"], ["status", "Conexões"]] as const).map(([t, l]) => (
           <button key={t} type="button" onClick={() => setTab(t)}
             style={btn(tab === t ? C.panel2 : "transparent", tab === t ? C.blue : C.dim, { borderBottom: `2px solid ${tab === t ? C.teal : "transparent"}`, borderRadius: "8px 8px 0 0" })}>{l}</button>
         ))}
@@ -127,6 +128,7 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
       )}
 
       {tab === "team" && <TeamTab />}
+      {tab === "api" && <ApiTab />}
 
       {tab === "status" && (
         <div>

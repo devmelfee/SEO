@@ -246,3 +246,18 @@ alter table public.proposals enable row level security;
 -- Modelo de IA escolhido pelo administrador (textos e sites).
 alter table public.agency_settings add column if not exists ai_model_text text;
 alter table public.agency_settings add column if not exists ai_model_site text;
+
+-- Chaves da API pública (/api/v1). Só o hash SHA-256 fica no banco; a chave aparece uma vez ao criar.
+create table if not exists public.api_keys (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  prefix text not null,
+  key_hash text not null unique,
+  scopes text[] not null default array['read'],
+  created_by text not null default '',
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz,
+  revoked_at timestamptz
+);
+alter table public.api_keys enable row level security;
+create index if not exists prospects_updated_at on public.prospects (updated_at desc);
