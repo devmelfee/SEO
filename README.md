@@ -7,7 +7,7 @@ do Google Maps → textos do perfil → avaliações → calendário de conteúd
 
 ## Colocar no ar (uma vez)
 
-1. **Banco:** no Supabase (projeto `tyiyxxfuwzfxqwfdowvb`) → SQL Editor → cole `supabase/setup.sql` → Run.
+1. **Banco:** no Supabase (projeto `bebjswervqdokkhpggro`) → SQL Editor → cole `supabase/setup.sql` → Run.
    O script é idempotente: pode rodar de novo sem quebrar nada.
 2. **Credenciais:** na Vercel → projeto → Settings → Environment Variables, cadastre as variáveis de
    [`.env.example`](.env.example). As obrigatórias são `APP_PASSWORD`, `SESSION_SECRET`, `ANTHROPIC_API_KEY`,
