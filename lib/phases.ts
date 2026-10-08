@@ -3,6 +3,8 @@
 export type FormData = {
   clientName?: string;
   clientUrl?: string;
+  /** Celular/WhatsApp do cliente — botões de envio abrem direto nele. */
+  phone?: string;
   vertical?: string;
   city?: string;
   pricing?: string;
@@ -16,7 +18,7 @@ export type FormData = {
 
 export type Step = {
   id: keyof FormData;
-  type: "text" | "url" | "vertical" | "select";
+  type: "text" | "url" | "vertical" | "select" | "tel";
   label: string;
   placeholder?: string;
   options?: string[];
@@ -30,6 +32,8 @@ export type Part = {
   /** Bloqueia a geração enquanto não houver {realData} — evita a IA inventar concorrentes. */
   needsRealData?: boolean;
   maxTokens?: number;
+  /** Subtítulo do bloco na etapa de Entrega. */
+  group?: string;
 };
 
 export type Phase = {
@@ -41,6 +45,8 @@ export type Phase = {
   steps?: Step[];
   parts?: Part[];
   tips?: string[];
+  /** Mostra o painel de concorrentes reais (Google Maps) nesta etapa. */
+  showRealData?: boolean;
 };
 
 export const CURRENCIES: Record<string, string> = { BRL: "R$", USD: "$", EUR: "€", GBP: "£" };
@@ -52,10 +58,9 @@ export const PRICING_OPTIONS = [
 ];
 
 export const VERTICALS = [
-  "Encanadores", "Eletricistas", "Telhadores", "Técnicos de HVAC", "Dentistas",
-  "Advogados de família", "Oficinas mecânicas", "Chaveiros", "Paisagistas",
-  "Empresas de limpeza", "Instaladores de portas de garagem", "Controle de pragas",
-  "Advogados de danos pessoais",
+  "Pet shops", "Dentistas", "Clínicas de estética", "Salões de beleza", "Barbearias", "Oficinas mecânicas",
+  "Encanadores", "Eletricistas", "Advogados", "Contadores", "Academias", "Restaurantes", "Lojas de roupa",
+  "Lojas de roupa infantil", "Imobiliárias", "Chaveiros", "Empresas de limpeza", "Controle de pragas", "Vidraçarias",
 ];
 
 /** Campos da Fase 1 sem os quais nenhum prompt deve ir para a IA. */
@@ -88,7 +93,7 @@ export function blockReason(part: Part, d: FormData): string | null {
   const missing = missingFields(d);
   if (missing.length) {
     const names: Record<string, string> = { clientName: "nome do cliente", vertical: "nicho", city: "cidade" };
-    return `Preencha na Configuração Inicial: ${missing.map((m) => names[m] ?? m).join(", ")}.`;
+    return `Preencha na etapa 1 (Cliente): ${missing.map((m) => names[m] ?? m).join(", ")}.`;
   }
   if (part.needsRealData && !d.realData?.trim()) {
     return "Este prompt precisa de dados reais dos concorrentes. Busque no Google ou cole os dados na caixa acima.";
@@ -122,91 +127,69 @@ const REAL_DATA_RULE =
 
 export const PHASES: Phase[] = [
   {
-    id: 1, title: "Configuração Inicial", emoji: "🎯", subtitle: "Dados do cliente e nicho", color: "#0D9488",
+    id: 1, title: "Cliente", emoji: "🏢", subtitle: "Quem é, como falar com ele e quem aparece na frente no Google", color: "#0D9488",
+    showRealData: true,
     steps: [
-      { id: "clientName", type: "text", label: "Nome do cliente / empresa", placeholder: "Ex: Hidro Fix Encanamentos…", required: true },
-      { id: "clientUrl", type: "url", label: "Site ou perfil Google do cliente (opcional)", placeholder: "https://…" },
-      { id: "vertical", type: "vertical", label: "Nicho / vertical", options: VERTICALS, required: true },
-      { id: "city", type: "text", label: "Cidade-alvo", placeholder: "Ex: São Paulo, Lisboa, Miami…", required: true },
+      { id: "clientName", type: "text", label: "Nome da empresa", placeholder: "Ex: Pet Feliz", required: true },
+      { id: "phone", type: "tel", label: "WhatsApp do cliente (celular com DDD)", placeholder: "(11) 98888-7777" },
+      { id: "vertical", type: "vertical", label: "Nicho", options: VERTICALS, required: true },
+      { id: "city", type: "text", label: "Cidade", placeholder: "Ex: Jundiaí", required: true },
+      { id: "clientUrl", type: "url", label: "Site ou perfil no Google (opcional)", placeholder: "https://…" },
     ],
   },
   {
-    id: 2, title: "Fase 1 — Auditoria", emoji: "🔍", subtitle: "Gaps reais do cliente vs concorrentes", color: "#7C3AED",
-    parts: [{
+    id: 2, title: "Diagnóstico", emoji: "🔍", subtitle: "O que está tirando clientes da empresa — é o que vende", color: "#7C3AED",
+    showRealData: true,
+    parts: [
+      {
       label: "Auditoria de categorias e atributos",
       needsRealData: true,
       system: "Você é especialista em SEO local e Google Business Profile. Responda em português, de forma estruturada com tabelas e listas.",
       prompt: `Faça uma auditoria de SEO local para {clientName} — um(a) {vertical} em {city}.\n{url}\n\n${REAL_DATA_RULE}\n\nDADOS REAIS DOS CONCORRENTES (Google Maps, busca "{vertical} em {city}"):\n{realData}\n\nPara cada concorrente, liste:\n- Categoria principal e categorias secundárias\n- Atributos visíveis\n- Número de avaliações e nota\n\nDepois crie uma tabela comparativa e destaque:\n1. Categorias/atributos que {clientName} provavelmente NÃO tem mas deveria\n2. Estimativa de impacto no ranking para cada ajuste\n3. Prioridade de implementação (Alta/Média/Baixa)`,
-    }],
-    tips: ["⚡ Categoria secundária faltante pode gerar resultados em 1 semana", "🎯 GBP representa 32% do peso de rankeamento", "⏱ ~20 min de trabalho, maior ROI em SEO local"],
-  },
-  {
-    id: 3, title: "Fase 2 — Textos do Perfil", emoji: "✍️", subtitle: "Copys otimizados para o GBP do cliente", color: "#B45309",
-    parts: [
-      { label: "Descrição GBP (3 versões)",
-        system: "Você é copywriter especializado em SEO local para Google Business Profile. Escreva em português brasileiro, tom profissional.",
-        prompt: `Escreva 3 versões de descrição GBP para {clientName} — {vertical} em {city}.\n{url}\n\nVersão 1 — Focada em palavras-chave (rankeamento)\nVersão 2 — Focada em conversão (cliques e ligações)\nVersão 3 — Equilibrada\n\nCada versão: máximo 750 caracteres. Inclua serviços principais, área de atuação em {city} e diferenciais de {clientName}. Mostre contagem de caracteres ao final de cada versão.` },
-      { label: "Seção de Serviços (8 serviços)",
-        system: "Você é especialista em SEO local. Escreva em português brasileiro.",
-        prompt: `Liste os 8 serviços mais buscados para {clientName} ({vertical} em {city}).\n{url}\n\nPara cada serviço, escreva descrição de 2-3 frases com palavras-chave locais naturais e bairros/regiões de {city}.\nFormato: Nome do serviço → Descrição` },
-      { label: "10 Perguntas & Respostas para GBP",
-        system: "Você é especialista em SEO local e conteúdo para Google Business Profile.",
-        prompt: `Crie 10 perguntas frequentes de clientes para {clientName} ({vertical} em {city}) com respostas otimizadas para busca.\n{url}\n\nCada resposta: 2-3 frases, palavras-chave locais naturais, mencione {city}, tom humano (não robótico).` },
-    ],
-    tips: ["📝 Serviços + Descrição + Q&A são os únicos campos que você controla", "🔑 Palavras-chave naturais, não forçadas", "🔄 Faça A/B nas descrições a cada 30 dias"],
-  },
-  {
-    id: 4, title: "Fase 3 — Avaliações", emoji: "⭐", subtitle: "Sistema de avaliações e respostas", color: "#DC2626",
-    parts: [
+    },
       { label: "Análise competitiva de avaliações",
         needsRealData: true,
         system: "Você é especialista em reputação digital e SEO local. Seja analítico e direto.",
         prompt: `Analise o cenário de avaliações para {clientName} ({vertical} em {city}).\n{url}\n\n${REAL_DATA_RULE}\n\nDADOS REAIS DOS CONCORRENTES:\n{realData}\n\nPara cada concorrente:\n- Total de avaliações e nota média\n- Pontos fortes e reclamações recorrentes (se houver texto de avaliações nos dados)\n\nConclua: quantas avaliações/mês {clientName} precisa para alcançar o líder e em quanto tempo, deixando claro quais números são estimativas suas.` },
-      { label: "12 Templates de resposta a avaliações",
+    ],
+    tips: ["⚡ Mande o resumo do diagnóstico antes da proposta: gera conversa", "🎯 Categorias e avaliações são o que mais pesa no Google Maps", "📊 Mostre o concorrente pelo nome — o dono conhece"],
+  },
+  {
+    id: 3, title: "Proposta", emoji: "💼", subtitle: "Site de prévia + proposta com o nome da empresa, enviada pelo WhatsApp", color: "#B45309",
+    parts: [],
+    tips: ["🌐 Proposta com site de prévia fecha muito mais", "⏱ Mande no mesmo dia da conversa — o interesse esfria rápido", "✅ O cliente aceita pelo link; você é avisado no WhatsApp"],
+  },
+  {
+    id: 4, title: "Entrega", emoji: "🚀", subtitle: "Depois do sim: o trabalho no Perfil do Google, pronto para colar", color: "#0369A1",
+    parts: [
+      { label: "Descrição GBP (3 versões)", group: "📝 Textos do perfil",
+        system: "Você é copywriter especializado em SEO local para Google Business Profile. Escreva em português brasileiro, tom profissional.",
+        prompt: `Escreva 3 versões de descrição GBP para {clientName} — {vertical} em {city}.\n{url}\n\nVersão 1 — Focada em palavras-chave (rankeamento)\nVersão 2 — Focada em conversão (cliques e ligações)\nVersão 3 — Equilibrada\n\nCada versão: máximo 750 caracteres. Inclua serviços principais, área de atuação em {city} e diferenciais de {clientName}. Mostre contagem de caracteres ao final de cada versão.` },
+      { label: "Seção de Serviços (8 serviços)", group: "📝 Textos do perfil",
+        system: "Você é especialista em SEO local. Escreva em português brasileiro.",
+        prompt: `Liste os 8 serviços mais buscados para {clientName} ({vertical} em {city}).\n{url}\n\nPara cada serviço, escreva descrição de 2-3 frases com palavras-chave locais naturais e bairros/regiões de {city}.\nFormato: Nome do serviço → Descrição` },
+      { label: "10 Perguntas & Respostas para GBP", group: "📝 Textos do perfil",
+        system: "Você é especialista em SEO local e conteúdo para Google Business Profile.",
+        prompt: `Crie 10 perguntas frequentes de clientes para {clientName} ({vertical} em {city}) com respostas otimizadas para busca.\n{url}\n\nCada resposta: 2-3 frases, palavras-chave locais naturais, mencione {city}, tom humano (não robótico).` },
+      { label: "12 Templates de resposta a avaliações", group: "⭐ Avaliações",
         system: "Você é especialista em gestão de reputação. Escreva em português brasileiro, tom genuíno.",
         prompt: `Crie templates de resposta a avaliações para {clientName} ({vertical} em {city}):\n- 3 variações para ⭐⭐⭐⭐⭐\n- 3 variações para ⭐⭐⭐⭐\n- 3 variações para ⭐⭐⭐\n- 3 variações para ⭐⭐ ou ⭐\n\nCada resposta: 3-5 frases, palavras-chave do serviço + {city}, mencione {clientName} quando natural, tom genuíno nunca corporativo.` },
-    ],
-    tips: ["📈 10 avaliações/mês com respostas = 120 conteúdos/ano", "✅ Google confirmou que responder avaliações ajuda no ranking", "🏆 Espaço gratuito que 90% das empresas ignora"],
-  },
-  {
-    id: 5, title: "Fase 4 — Sinais Ativos", emoji: "📅", subtitle: "Calendário de conteúdo semanal", color: "#0369A1",
-    parts: [
-      { label: "Calendário de posts (8 semanas)", maxTokens: 8000,
+      { label: "Calendário de posts (8 semanas)", group: "📅 Posts e fotos", maxTokens: 8000,
         system: "Você é estrategista de conteúdo para Google Business Profile.",
         prompt: `Crie calendário de posts GBP para {clientName} ({vertical} em {city}) — 8 semanas, 2-3 posts/semana.\n{url}\n\nMix obrigatório: promoções sazonais, antes/depois, conteúdo de bairros de {city}, destaques de avaliações, equipe.\n\nPara cada post: Semana | Dia | Tema | Texto completo (150-300 palavras) | Palavra-chave principal` },
-      { label: "Plano de fotos (8 semanas)",
+      { label: "Plano de fotos (8 semanas)", group: "📅 Posts e fotos",
         system: "Você é especialista em marketing visual para empresas locais.",
         prompt: `Plano de upload de fotos para {clientName} ({vertical} em {city}) — 8 semanas:\n- Quantas fotos por semana\n- Tipo (antes/depois, equipe, veículos/equipamentos, obra/serviço concluído)\n- Bairros ou pontos de referência de {city} para aparecer\n- Legenda sugerida com palavras-chave naturais\n\nNada de fotos genéricas de banco de imagens.` },
-    ],
-    tips: ["🚀 Posts + fotos otimizam para Google Maps E ChatGPT/IA", "📊 Sinais de engajamento são o fator que mais cresce em 2026", "🤖 Perfis ativos são favorecidos pela busca tradicional e por IA"],
-  },
-  {
-    id: 6, title: "Fase 5 — Reforço Externo", emoji: "🌐", subtitle: "Presença consistente na internet", color: "#065F46",
-    parts: [
-      { label: "30 diretórios + checklist NAP",
+      { label: "30 diretórios + checklist NAP", group: "🌐 Presença fora do Google",
         system: "Você é especialista em SEO local e citações (citations).",
         prompt: `Liste os 30 principais diretórios onde {clientName} ({vertical} em {city}) deve ter cadastro.\n{url}\n\nPara cada diretório:\n- Nome e URL\n- Prioridade (Alta/Média/Baixa)\n- Campos obrigatórios\n\nDepois crie checklist de auditoria NAP para garantir que Nome, Endereço e Telefone sejam EXATAMENTE iguais em todos os diretórios.` },
-      { label: "Schema LocalBusiness (JSON-LD)",
+      { label: "Schema LocalBusiness (JSON-LD)", group: "🌐 Presença fora do Google",
         system: "Você é desenvolvedor especializado em Schema.org e SEO técnico.",
         prompt: `Gere código Schema.org LocalBusiness em JSON-LD para {clientName} ({vertical} em {city}).\n{url}\n\nInclua:\n- @type correto para {vertical}\n- name ({clientName}), address, telephone, url (use placeholders claros como "PREENCHER_TELEFONE" quando não souber)\n- openingHoursSpecification (horário comercial padrão)\n- serviceArea para {city} e região\n- hasOfferCatalog com 5 serviços principais\n- geo com coordenadas aproximadas do centro de {city}\n\nNão inclua aggregateRating (avaliações inventadas violam as diretrizes do Google). Código completo pronto para o <head> do site.` },
     ],
-    tips: ["📍 'Rua' vs 'R.' pode prejudicar posicionamento no Maps", "🔧 Schema LocalBusiness informa ao Google exatamente quem é {clientName}", "♻️ Revisão mensal de NAP justifica contrato recorrente"],
-  },
-  {
-    id: 7, title: "Prospecção & Fechamento", emoji: "💼", subtitle: "Scripts e proposta para fechar o cliente", color: "#7C2D12",
-    parts: [
-      { label: "Scripts de abordagem (3 canais)",
-        needsRealData: true,
-        system: "Você é especialista em vendas consultivas para agências de marketing. Tom de consultor especialista, não vendedor.",
-        prompt: `Scripts de abordagem para {clientName} ({vertical} em {city}):\n{url}\n\n${REAL_DATA_RULE}\n\nDADOS REAIS DOS CONCORRENTES:\n{realData}\n\nVersão 1 — E-mail frio (máx 150 palavras)\nVersão 2 — WhatsApp/DM (máx 80 palavras)\nVersão 3 — Abordagem presencial (roteiro 60 segundos)\n\nCada versão deve mencionar 3 gaps específicos tirados dos dados acima, impacto em ligações perdidas, e proposta de teste de 1 mês.` },
-      { label: "Proposta comercial de 1 página",
-        needsRealData: true,
-        system: "Você é consultor de SEO local. Propostas claras, baseadas em dados, sem jargão.",
-        prompt: `Proposta de 1 página para {clientName} ({vertical} em {city}):\n{url}\n\n${REAL_DATA_RULE}\n\nDADOS REAIS DOS CONCORRENTES:\n{realData}\n\n1. Diagnóstico: 3 problemas específicos de {clientName} frente aos concorrentes acima\n2. Solução: plano de 5 fases resumido em bullet points\n3. Resultados esperados em 30/60/90 dias (metas realistas, sem prometer posição)\n4. Investimento: {investimento}\n5. Próximos passos: 3 ações simples para começar hoje\n\nTom direto, focado em ROI para {clientName}.` },
-    ],
-    tips: ["🎯 Posições 4-20 do Maps: empresas que querem e podem pagar", "📊 Mostre a auditoria grátis antes de vender", "✅ Meta: 1 fechamento a cada 3 abordagens com proposta específica"],
+    tips: ["📝 Serviços + Descrição + Perguntas são os campos que você controla", "📈 10 avaliações/mês com resposta = 120 conteúdos/ano", "♻️ Revisão mensal de dados e posts justifica o contrato recorrente"],
   },
 ];
 
 /** Fases que mostram o painel de dados reais dos concorrentes. */
-export const phaseNeedsRealData = (p: Phase) => !!p.parts?.some((x) => x.needsRealData);
+export const phaseNeedsRealData = (p: Phase) => !!p.showRealData || !!p.parts?.some((x) => x.needsRealData);

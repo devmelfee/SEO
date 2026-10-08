@@ -33,14 +33,14 @@ export async function GET(req: Request) {
     let prospect: any = null, client: any = null;
     if (t.prospectId) prospect = check(await db().from("prospects").select("*").eq("id", t.prospectId).maybeSingle());
     else {
-      client = check(await db().from("clients").select("name,vertical,city").eq("id", t.clientId!).maybeSingle());
+      client = check(await db().from("clients").select("name,vertical,city,phone").eq("id", t.clientId!).maybeSingle());
       prospect = check(await db().from("prospects").select("*").eq("client_id", t.clientId!).limit(1).maybeSingle());
     }
     if (!prospect && !client) return fail(404, "Lead ou cliente não encontrado.");
     const [qNiche, qCity] = String(prospect?.query ?? "").split(" em ");
     const data: SiteData = {
       name: client?.name || prospect?.name || "", niche: client?.vertical || qNiche || "", city: client?.city || qCity || "",
-      phone: prospect?.phone || "", address: prospect?.address || "", hours: prospect?.hours ?? [],
+      phone: prospect?.phone || client?.phone || "", address: prospect?.address || "", hours: prospect?.hours ?? [],
       rating: prospect?.rating ?? null, reviews: prospect?.reviews_count ?? 0, mapsUrl: prospect?.maps_url || "",
       agency: settings?.name || "",
     };

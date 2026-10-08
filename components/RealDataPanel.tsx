@@ -29,7 +29,7 @@ export function RealDataPanel({ formData, onChange, placesEnabled, clientId }: {
         <span style={{ color: has ? "#6EE7B7" : "#FCD34D", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.07em" }}>
           {has ? "✓ Dados reais dos concorrentes" : "⚠ Dados reais dos concorrentes (obrigatório)"}
         </span>
-        <span style={{ color: C.faint, fontSize: 11 }}>Usados em Auditoria, Avaliações e Prospecção</span>
+        <span style={{ color: C.faint, fontSize: 11 }}>Usados no Diagnóstico e na Proposta</span>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
         <input value={query} placeholder={defaultQuery || "Ex: Encanadores em São Paulo"} onChange={(e) => setQuery(e.target.value)}

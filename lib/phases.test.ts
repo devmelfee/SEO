@@ -26,10 +26,10 @@ test("missingFields ignora espaços em branco", () => {
 
 test("blockReason exige Fase 1 e dados reais quando o prompt pede", () => {
   const audit = PHASES[1].parts![0];
-  assert.match(blockReason(audit, {})!, /Configuração Inicial/);
+  assert.match(blockReason(audit, {})!, /etapa 1/);
   assert.match(blockReason(audit, full)!, /dados reais/);
   assert.equal(blockReason(audit, { ...full, realData: "dados" }), null);
-  assert.equal(blockReason(PHASES[2].parts![0], full), null);
+  assert.equal(blockReason(PHASES[3].parts![0], full), null);
 });
 
 test("slugify preserva letras acentuadas", () => {

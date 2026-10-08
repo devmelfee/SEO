@@ -3,8 +3,8 @@ import { authClient, authConfigured, membership } from "@/lib/auth";
 
 // Páginas e rotas que não exigem login.
 const PUBLIC = ["/login", "/cadastro", "/recuperar", "/auth/callback", "/api/status"];
-// Sites de prévia (/s/nome-da-empresa) são públicos: é o link que vai para o prospect.
-const isPublic = (p: string) => PUBLIC.includes(p) || /^\/s\/[a-z0-9-]+$/.test(p);
+// Sites de prévia (/s/…) e propostas (/p/…) são públicos: são os links que vão para o cliente.
+const isPublic = (p: string) => PUBLIC.includes(p) || /^\/[sp]\/[a-z0-9-]+$/.test(p);
 // Exigem login, mas não fazer parte da equipe (trocar senha, aviso de acesso pendente).
 const LOGGED_ONLY = ["/nova-senha", "/sem-acesso", "/api/logout"];
 

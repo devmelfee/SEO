@@ -5,6 +5,7 @@ const s = (max: number) => z.string().trim().max(max).optional().default("");
 export const ClientInput = z.object({
   clientName: s(200),
   clientUrl: s(500),
+  phone: s(30),
   vertical: s(200),
   city: s(200),
   pricing: s(200),
@@ -14,8 +15,8 @@ export const ClientInput = z.object({
 });
 
 export const toRow = (c: z.infer<typeof ClientInput>) => ({
-  name: c.clientName, url: c.clientUrl, vertical: c.vertical, city: c.city,
+  name: c.clientName, url: c.clientUrl, phone: c.phone, vertical: c.vertical, city: c.city,
   pricing: c.pricing, goal: c.goal, real_data: c.realData, completed_phases: c.completedPhases,
 });
 
-export const CLIENT_COLS = "id,name,url,vertical,city,pricing,goal,real_data,completed_phases,created_at,updated_at";
+export const CLIENT_COLS = "id,name,url,phone,vertical,city,pricing,goal,real_data,completed_phases,created_at,updated_at";

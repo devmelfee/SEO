@@ -225,3 +225,20 @@ alter table public.team_members add column if not exists limits jsonb;
 alter table public.team_members add column if not exists usage_reset_at timestamptz;
 alter table public.agency_settings add column if not exists default_limits jsonb;
 alter table public.agency_settings add column if not exists usd_brl numeric(8,4) not null default 5.5;
+
+-- Proposta comercial pública (/p/slug) com aceite pelo cliente; telefone do cliente para o WhatsApp.
+alter table public.clients add column if not exists phone text not null default '';
+create table if not exists public.proposals (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null unique references public.clients(id) on delete cascade,
+  slug text not null unique,
+  data jsonb not null,
+  status text not null default 'rascunho' check (status in ('rascunho','enviada','aceita')),
+  views int not null default 0,
+  sent_at timestamptz,
+  accepted_at timestamptz,
+  created_by text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.proposals enable row level security;

@@ -7,7 +7,7 @@ import { C, btn, input, label, primary } from "./styles";
 type Target = { prospectId?: string; clientId?: string };
 type SiteMeta = { slug: string; source: string; updated_at: string; views: number } | null;
 
-/** Gera e publica o site de prévia de um lead (Radar) ou cliente (Prospecção & Fechamento). */
+/** Gera e publica o site de prévia de um lead (Radar) ou cliente (Execução → Proposta). */
 export function SiteBuilder({ target, aiEnabled }: { target: Target; aiEnabled: boolean }) {
   const [data, setData] = useState<SiteData | null>(null);
   const [site, setSite] = useState<SiteMeta>(null);

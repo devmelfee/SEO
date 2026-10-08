@@ -101,7 +101,7 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
 
       {tab === "defaults" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>Pré-preenchem a Configuração Inicial de cada cliente novo.</p>
+          <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>Pré-preenchem a etapa 1 (Cliente) de cada cliente novo.</p>
           {field("default_vertical", "Nicho padrão", "Ex: Encanadores")}
           {field("default_city", "Cidade padrão", "Ex: São Paulo")}
         </div>
@@ -176,7 +176,7 @@ export function ClientsModal({ currentId, onOpen, onClose }: { currentId: string
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name || "(sem nome)"}</div>
               <div style={{ fontSize: 12, color: C.muted }}>
-                {[r.vertical, r.city].filter(Boolean).join(" · ")} · {sections} seção(ões) · {(r.completed_phases ?? []).length}/7 fases ·{" "}
+                {[r.vertical, r.city].filter(Boolean).join(" · ")} · {sections} seção(ões) · {(r.completed_phases ?? []).filter((n) => n < 4).length}/4 etapas ·{" "}
                 {new Date(r.updated_at).toLocaleDateString("pt-BR")}
               </div>
             </div>

@@ -2,11 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PHASES, missingFields, phaseNeedsRealData, type FormData, type Phase } from "@/lib/phases";
 import { api, type Section, type Status } from "@/lib/api";
+import { whatsappNumber } from "@/lib/site";
 import { PromptCard } from "./PromptCard";
 import { RealDataPanel } from "./RealDataPanel";
 import { UrlField, VerticalPicker } from "./Fields";
 import { Radar, type Prospect } from "./Radar";
-import { SiteBuilder } from "./SiteBuilder";
+import { DiagnosisSend, ProposalPanel, WhatsAppButton } from "./Proposal";
 import { ClientsModal, ReportModal, SettingsModal, type Agency } from "./Modals";
 import { LimitBanner, UsageModal, useMyUsage } from "./Usage";
 import { C, btn, input, label, primary } from "./styles";
@@ -61,8 +62,8 @@ export default function SeoApp() {
   useEffect(() => {
     const d = readDraft();
     if (d) {
-      setFormData(d.formData ?? {}); setResults(d.results ?? {}); setCompleted(d.completed ?? []);
-      setClientId(d.clientId ?? null); setActivePhase(d.activePhase ?? 0);
+      setFormData(d.formData ?? {}); setResults(d.results ?? {}); setCompleted(validSteps(d.completed));
+      setClientId(d.clientId ?? null); setActivePhase(Math.min(d.activePhase ?? 0, PHASES.length - 1));
     }
     setHydrated(true);
     api<Status>("/api/status").then(async (s) => {
@@ -71,7 +72,7 @@ export default function SeoApp() {
       const st = await api<Agency>("/api/settings").catch(() => ({}) as Agency);
       setSettings(st);
       // O banco é a fonte da verdade: se o rascunho aponta para um cliente salvo, recarrega dele.
-      if (d?.clientId) await openClient(d.clientId, { keepPhase: d.activePhase });
+      if (d?.clientId) await openClient(d.clientId, { keepPhase: Math.min(d.activePhase ?? 0, PHASES.length - 1) });
       else if (!d) setFormData((p) => applyDefaults(p, st));
     }).catch(() => setStatus(null));
   }, []);
@@ -94,7 +95,7 @@ export default function SeoApp() {
     return creating.current;
   }, [supabaseOn]);
 
-  // Mudanças na Configuração Inicial e nas fases concluídas vão para o banco (antes só a criação era salva).
+  // Mudanças nos dados do cliente e nas etapas concluídas vão para o banco (antes só a criação era salva).
   useEffect(() => {
     if (!hydrated || !clientId || !supabaseOn || !dirty.current) return;
     const t = setTimeout(() => {
@@ -147,10 +148,10 @@ export default function SeoApp() {
     dirty.current = false;
     try {
       const { client, phases } = await api<{ client: any; phases: { phase_label: string; content: string; original_content: string }[] }>(`/api/clients/${id}`);
-      setFormData({ clientName: client.name, clientUrl: client.url, vertical: client.vertical, city: client.city,
+      setFormData({ clientName: client.name, clientUrl: client.url, phone: client.phone ?? "", vertical: client.vertical, city: client.city,
         pricing: client.pricing, goal: client.goal, realData: client.real_data });
       setResults(Object.fromEntries(phases.map((p) => [p.phase_label, { content: p.content, original: p.original_content || p.content }])));
-      setCompleted(Array.isArray(client.completed_phases) ? client.completed_phases : []);
+      setCompleted(validSteps(client.completed_phases));
       setClientId(client.id); setActivePhase(opts.keepPhase ?? 0); setSession((s) => s + 1); setModal(null);
     } catch (e) {
       // Cliente apagado no banco: descarta o rascunho órfão em vez de recriar com dados velhos.
@@ -162,7 +163,7 @@ export default function SeoApp() {
   const startFromProspect = async (p: Prospect, competitors: string, vertical: string, city: string) => {
     setView("exec");
     if (p.client_id) { await openClient(p.client_id); return; }
-    const data: FormData = { ...applyDefaults({}, settings), clientName: p.name, clientUrl: p.website, vertical: vertical || settings.default_vertical || "", city: city || settings.default_city || "", realData: competitors };
+    const data: FormData = { ...applyDefaults({}, settings), clientName: p.name, clientUrl: p.website, phone: p.phone, vertical: vertical || settings.default_vertical || "", city: city || settings.default_city || "", realData: competitors };
     setFormData(data); setResults({}); setCompleted([0]); setClientId(null); setActivePhase(1); setSession((s) => s + 1);
     if (!supabaseOn) return;
     try {
@@ -263,7 +264,7 @@ export default function SeoApp() {
       {view === "exec" && (
       <div className="layout">
         <aside className="sidebar">
-          <p style={{ ...label, color: C.faint, fontSize: 10 }}>Fases</p>
+          <p style={{ ...label, color: C.faint, fontSize: 10 }}>Etapas</p>
           {PHASES.map((p, i) => {
             const active = i === activePhase, done = completed.includes(i);
             return (
@@ -273,7 +274,10 @@ export default function SeoApp() {
                   background: done ? "#052E16" : active ? p.color + "18" : C.panel, border: `2px solid ${done ? C.green : active ? p.color : C.border}` }}>
                   {done ? <span style={{ color: C.green, fontWeight: 700, fontSize: 11 }}>✓</span> : p.emoji}
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: active ? C.text : done ? C.green : C.dim }}>{p.title}</span>
+                <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: active ? C.text : done ? C.green : C.dim }}>{i + 1}. {p.title}</span>
+                  <span className="phase-sub" style={{ fontSize: 10.5, color: C.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{STEP_HINT[i]}</span>
+                </span>
               </button>
             );
           })}
@@ -284,44 +288,54 @@ export default function SeoApp() {
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <span style={{ fontSize: 26 }}>{phase.emoji}</span>
               <div style={{ flex: 1 }}>
-                <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{phase.title}</h1>
+                <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{activePhase + 1}. {phase.title}</h1>
                 <p style={{ margin: "3px 0 0", fontSize: 13, color: C.dim }}>{phase.subtitle}</p>
               </div>
               <span style={{ fontSize: 11, color: phase.color, fontWeight: 700 }}>{activePhase + 1}/{PHASES.length}</span>
             </div>
           </div>
 
-          {phase.steps ? (
-            <SetupForm phase={phase} formData={formData} onUpdate={updateField} />
-          ) : (
-            <div key={`${session}-${phase.id}`}>
-              {phaseNeedsRealData(phase) && (
-                <RealDataPanel formData={formData} onChange={(v) => updateField("realData", v)} placesEnabled={!!status?.places} clientId={clientId} />
-              )}
-              {phase.id === 7 && (
-                <div style={{ background: C.panel, border: `1px solid ${phase.color}40`, borderRadius: 12, padding: 18, marginBottom: 20 }}>
-                  <h3 style={{ margin: "0 0 4px", fontSize: 15 }}>🌐 Site de prévia para levar na abordagem</h3>
-                  <p style={{ margin: "0 0 14px", fontSize: 12.5, color: C.muted }}>
-                    Gere na hora com o modelo, com IA, ou copie o prompt para o Claude.ai e cole o HTML. O link vai junto com os scripts abaixo.
-                  </p>
-                  {clientId ? <SiteBuilder target={{ clientId }} aiEnabled={!!status?.anthropic} />
-                    : <p style={{ color: "#FCD34D", fontSize: 13, margin: 0 }}>⚠ Salve o cliente primeiro (conclua a Configuração Inicial com o banco ligado).</p>}
-                </div>
-              )}
-              {phase.parts!.map((part) => (
-                <PromptCard key={part.label} part={part} formData={promptData} color={phase.color} saved={results[part.label]} aiEnabled={!!status?.anthropic}
-                  onGenerated={onGenerated} onEdited={onEdited} />
-              ))}
-              {phase.tips && (
-                <div style={{ background: C.panel, border: `1px solid ${C.borderBlue}`, borderRadius: 10, padding: 16 }}>
-                  <p style={{ ...label, color: "#3B82F6" }}>Por que isso importa</p>
-                  {phase.tips.map((t, i) => (
-                    <p key={i} style={{ color: C.dim, fontSize: 13, margin: "0 0 6px", lineHeight: 1.6 }}>{t.replace(/\{clientName\}/g, formData.clientName || "o cliente")}</p>
-                  ))}
-                </div>
-              )}
+          {formData.clientName && activePhase > 0 && (
+            <div className="dash-card" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16, padding: "10px 16px" }}>
+              <strong style={{ fontSize: 14 }}>🏢 {formData.clientName}</strong>
+              <span style={{ fontSize: 12, color: C.muted }}>{[formData.vertical, formData.city, formData.phone || "sem WhatsApp"].filter(Boolean).join(" · ")}</span>
+              <span style={{ marginLeft: "auto" }}>
+                <WhatsAppButton phone={formData.phone} text={`Olá! ${settings.consultant ? `Aqui é ${settings.consultant}. ` : ""}`} label="📲 WhatsApp" />
+              </span>
             </div>
           )}
+
+          <div key={`${session}-${phase.id}`}>
+            {phase.steps && <SetupForm phase={phase} formData={formData} onUpdate={updateField} />}
+            {phaseNeedsRealData(phase) && (
+              <div style={{ marginTop: phase.steps ? 24 : 0 }}>
+                <RealDataPanel formData={formData} onChange={(v) => updateField("realData", v)} placesEnabled={!!status?.places} clientId={clientId} />
+              </div>
+            )}
+            {phase.id === 2 && <DiagnosisSend clientId={clientId} phone={formData.phone} sender={settings.consultant} />}
+            {phase.id === 3 && <ProposalPanel clientId={clientId} phone={formData.phone} aiEnabled={!!status?.anthropic} />}
+            {phase.id === 4 && (
+              <p style={{ fontSize: 13, color: C.muted, margin: "0 0 14px" }}>
+                ✓ {phase.parts!.filter((x) => results[x.label]?.content.trim()).length} de {phase.parts!.length} entregas prontas.
+                {" "}Gere o que for usar agora — cada geração conta no seu limite de IA.
+              </p>
+            )}
+            {phase.parts?.map((part, i) => (
+              <div key={part.label}>
+                {part.group && part.group !== phase.parts![i - 1]?.group && <h3 className="dash-title" style={{ margin: "18px 0 10px" }}>{part.group}</h3>}
+                <PromptCard part={part} formData={promptData} color={phase.color} saved={results[part.label]} aiEnabled={!!status?.anthropic}
+                  onGenerated={onGenerated} onEdited={onEdited} />
+              </div>
+            ))}
+            {phase.tips && (
+              <div style={{ background: C.panel, border: `1px solid ${C.borderBlue}`, borderRadius: 10, padding: 16 }}>
+                <p style={{ ...label, color: "#3B82F6" }}>Dicas</p>
+                {phase.tips.map((t, i) => (
+                  <p key={i} style={{ color: C.dim, fontSize: 13, margin: "0 0 6px", lineHeight: 1.6 }}>{t.replace(/\{clientName\}/g, formData.clientName || "o cliente")}</p>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
             {activePhase > 0 && (
@@ -330,7 +344,7 @@ export default function SeoApp() {
             )}
             <button type="button" onClick={() => markDone(activePhase)}
               style={btn(`linear-gradient(135deg,${phase.color},${phase.color}BB)`, "#fff", { padding: "11px 26px", fontSize: 13, flex: activePhase === 0 ? 1 : undefined })}>
-              {activePhase === PHASES.length - 1 ? "✓ Concluir processo" : "Marcar fase concluída →"}
+              {activePhase === PHASES.length - 1 ? "✓ Concluir entrega" : "Concluir etapa →"}
             </button>
             {activePhase === PHASES.length - 1 && resultCount > 0 && (
               <button type="button" onClick={() => setModal("report")} style={btn(primary, "#fff", { padding: "11px 22px", fontSize: 13 })}>📋 Ver relatório →</button>
@@ -354,6 +368,10 @@ export default function SeoApp() {
   );
 }
 
+const STEP_HINT = ["dados e concorrentes", "o que está faltando", "site + proposta", "trabalho no Google"];
+/** Clientes antigos tinham 7 fases: ignora índices que não existem mais. */
+const validSteps = (v: unknown): number[] => (Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n >= 0 && n < PHASES.length) : []);
+
 function applyDefaults(p: FormData, s: Agency): FormData {
   return { ...p, vertical: p.vertical || s.default_vertical || "", city: p.city || s.default_city || "" };
 }
@@ -368,6 +386,12 @@ function SetupForm({ phase, formData, onUpdate }: { phase: Phase; formData: Form
             <label style={label}>{step.label}{step.required && <span style={{ color: "#DC2626", marginLeft: 4 }}>*</span>}</label>
             {step.type === "vertical" ? <VerticalPicker value={v} options={step.options!} onChange={(x) => onUpdate(step.id, x)} />
               : step.type === "url" ? <UrlField value={v} onChange={(x) => onUpdate(step.id, x)} />
+              : step.type === "tel" ? (
+                <>
+                  <input type="tel" inputMode="tel" value={v} placeholder={step.placeholder} onChange={(e) => onUpdate(step.id, e.target.value)} style={input} />
+                  {v.trim() && !whatsappNumber(v) && <p style={{ fontSize: 12, color: "#FCD34D", margin: "6px 0 0" }}>Não parece um celular (DDD + 9 dígitos). Fixo não abre no WhatsApp.</p>}
+                </>
+              )
               : step.type === "select" ? (
                 <select value={v} onChange={(e) => onUpdate(step.id, e.target.value)} style={{ ...input, color: v ? C.text : C.dim, cursor: "pointer" }}>
                   <option value="">Selecione…</option>
