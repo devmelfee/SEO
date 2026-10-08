@@ -20,7 +20,7 @@ test("modelo usa dados reais, escapa HTML e marca prévia/noindex", () => {
   assert.match(html, /Prévia de site/);
   assert.doesNotMatch(html, /<script>alert/);
   assert.match(buildSiteHtml(d), /wa\.me\/5511910179782/);
-  assert.match(buildSiteHtml(d), /4,5 no Google · 13 avaliações/);
+  assert.match(buildSiteHtml(d), /4,5<\/b> no Google · 13 avaliações/);
   assert.match(buildSiteHtml(d), /segunda-feira/);
 });
 

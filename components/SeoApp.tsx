@@ -8,6 +8,7 @@ import { RealDataPanel } from "./RealDataPanel";
 import { UrlField, VerticalPicker } from "./Fields";
 import { Radar, type Prospect } from "./Radar";
 import { DiagnosisSend, ProposalPanel, WhatsAppButton } from "./Proposal";
+import { OutreachQueue } from "./Outreach";
 import { ClientsModal, ReportModal, SettingsModal, type Agency } from "./Modals";
 import { LimitBanner, UsageModal, useMyUsage } from "./Usage";
 import { C, btn, input, label, primary } from "./styles";
@@ -31,10 +32,11 @@ export default function SeoApp() {
   const [status, setStatus] = useState<Status | null>(null);
   const [modal, setModal] = useState<null | "settings" | "report" | "clients" | "usage">(null);
   const [usage] = useMyUsage();
-  const [view, setView] = useState<"radar" | "exec">(() => {
-    try { return localStorage.getItem("seo_view") === "exec" ? "exec" : "radar"; } catch { return "radar"; }
+  const [view, setView] = useState<View>(() => {
+    try { const v = localStorage.getItem("seo_view"); return v === "exec" || v === "abordagem" ? v : "radar"; } catch { return "radar"; }
   });
   useEffect(() => { try { localStorage.setItem("seo_view", view); } catch { /* sem armazenamento */ } }, [view]);
+  const [more, setMore] = useState(false);
   const [dbMsg, setDbMsg] = useState<{ t: string; c: string } | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
@@ -102,7 +104,7 @@ export default function SeoApp() {
       dirty.current = false;
       api(`/api/clients/${clientId}`, { method: "PATCH", body: payload() })
         .then(() => flashDb("✓ salvo", C.green))
-        .catch((e) => flashDb(`⚠ ${e.message}`, "#F87171", true));
+        .catch((e) => flashDb(`⚠ ${e.message}`, "#DC2626", true));
     }, 1200);
     return () => clearTimeout(t);
   }, [formData, completed, clientId, supabaseOn, hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -110,11 +112,11 @@ export default function SeoApp() {
   const saveSection = async (label: string, content: string, fromAi: boolean) => {
     const id = await ensureClient();
     if (!id) return; // sem banco: fica no rascunho local
-    flashDb("💾 salvando…", "#FBBF24", true);
+    flashDb("salvando…", "#D97706", true);
     try {
       await api(`/api/clients/${id}/phases`, { method: "PUT", body: { label, content, fromAi } });
       flashDb("✓ salvo", C.green);
-    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); throw e; }
+    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#DC2626", true); throw e; }
   };
 
   const onGenerated = async (label: string, text: string) => {
@@ -131,11 +133,11 @@ export default function SeoApp() {
   const markDone = async (idx: number) => {
     if (idx === 0) {
       const miss = missingFields(formData);
-      if (miss.length) { flashDb("⚠ Preencha nome, nicho e cidade", "#F87171"); return; }
+      if (miss.length) { flashDb("⚠ Preencha nome, nicho e cidade", "#DC2626"); return; }
     }
     dirty.current = true;
     setCompleted((p) => (p.includes(idx) ? p : [...p, idx].sort()));
-    if (idx === 0) await ensureClient().catch((e) => flashDb(`⚠ ${e.message}`, "#F87171", true));
+    if (idx === 0) await ensureClient().catch((e) => flashDb(`⚠ ${e.message}`, "#DC2626", true));
     if (idx < PHASES.length - 1) setActivePhase(idx + 1);
   };
 
@@ -156,7 +158,7 @@ export default function SeoApp() {
     } catch (e) {
       // Cliente apagado no banco: descarta o rascunho órfão em vez de recriar com dados velhos.
       if (/não encontrado/i.test((e as Error).message)) { setClientId(null); setResults({}); }
-      flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); }
+      flashDb(`⚠ ${(e as Error).message}`, "#DC2626", true); }
   };
 
   /** Lead do Radar → cliente em execução, já com nicho, cidade, site e os concorrentes reais da busca. */
@@ -171,8 +173,10 @@ export default function SeoApp() {
       clientIdRef.current = c.id; setClientId(c.id);
       if (p.id) await api(`/api/prospects/${p.id}`, { method: "PATCH", body: { client_id: c.id } });
       flashDb("✓ lead virou cliente", C.green);
-    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#F87171", true); }
+    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#DC2626", true); }
   };
+
+  const logout = () => { api("/api/logout", { method: "POST" }).finally(() => (window.location.href = "/login")); };
 
   const saveSettings = async (s: Agency) => {
     if (!supabaseOn) throw new Error("Configure o Supabase para salvar as configurações.");
@@ -182,7 +186,6 @@ export default function SeoApp() {
   const phase = PHASES[activePhase];
   // Preços vêm de Configurações → Comercial e entram nos prompts como {investimento}.
   const promptData: FormData = { ...formData, monthlyPrice: settings.monthly_price, trialPrice: settings.trial_price };
-  const progress = Math.round((completed.length / PHASES.length) * 100);
   const resultCount = Object.values(results).filter((r) => r.content.trim()).length;
   const clientLabel = formData.clientName || formData.vertical;
   // A IA é opcional (há o modo "colar resultado"); o banco não.
@@ -198,59 +201,57 @@ export default function SeoApp() {
       {modal === "clients" && <ClientsModal currentId={clientId} onOpen={openClient} onClose={() => setModal(null)} />}
 
       <header className="topbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <span style={{ fontSize: 18 }}>📍</span>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>{settings.name || "SEO Local Agency"}</div>
-            <div style={{ color: C.faint, fontSize: 12 }}>{settings.consultant ? `${settings.consultant} · ` : ""}Sistema de execução com IA</div>
-          </div>
-          <nav className="tabs" aria-label="Seções">
-            {([["radar", "📡 Radar"], ["exec", "🎯 Execução"]] as const).map(([v, l]) => (
-              <button key={v} type="button" aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}
-                style={btn(view === v ? C.panel2 : "transparent", view === v ? C.text : C.dim, { border: `1px solid ${view === v ? C.borderBlue : "transparent"}` })}>{l}</button>
-            ))}
-          </nav>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden>{(settings.name || "S").trim().charAt(0).toUpperCase()}</span>
+          <span className="brand-name">{settings.name || "SEO Local"}</span>
+          {dbMsg && <span role="status" style={{ fontSize: 12, color: dbMsg.c, fontWeight: 600, whiteSpace: "nowrap" }}>{dbMsg.t}</span>}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-          {dbMsg && <span role="status" style={{ fontSize: 11, color: dbMsg.c, fontWeight: 600 }}>{dbMsg.t}</span>}
-          {clientLabel && (
-            <span style={{ background: C.panel2, border: `1px solid ${C.borderBlue}`, borderRadius: 8, padding: "5px 12px", fontSize: 12, color: C.blue,
-              fontWeight: 700, maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-              title={clientId ? "Salvo no Supabase" : "Ainda não salvo no banco"}>
-              {clientId ? "💾 " : ""}{clientLabel}{formData.city ? ` · ${formData.city}` : ""}
-            </span>
-          )}
-          <button type="button" onClick={() => setModal("clients")} disabled={!supabaseOn} title={supabaseOn ? "" : "Configure o Supabase"}
-            style={btn(C.panel2, supabaseOn ? C.blue : C.faint, { border: `1px solid ${C.border}` })}>👥 Clientes</button>
-          <button type="button" onClick={() => setModal("report")}
-            style={btn(resultCount ? primary : C.panel2, resultCount ? "#fff" : C.faint, { border: resultCount ? "none" : `1px solid ${C.border}` })}>
-            📋 Relatório{resultCount ? ` (${resultCount})` : ""}
-          </button>
-          {usage?.role === "admin" && (
-            <button type="button" onClick={() => setModal("usage")} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>📊 Gastos</button>
-          )}
-          <button type="button" aria-label="Configurações" onClick={() => setModal("settings")} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}`, fontSize: 14 })}>⚙️</button>
-          <button type="button" aria-label="Novo cliente" title="Novo cliente"
-            onClick={() => (resultCount || clientLabel) && !confirm("Começar um cliente novo? O atual continua salvo em Clientes.") ? null : reset()}
-            style={btn(C.panel2, C.dim, { border: `1px solid ${C.border}`, fontSize: 13 })}>🔄</button>
-          <button type="button" aria-label="Sair" title="Sair" onClick={() => api("/api/logout", { method: "POST" }).finally(() => (window.location.href = "/login"))}
-            style={btn(C.panel2, C.dim, { border: `1px solid ${C.border}`, fontSize: 13 })}>⎋</button>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 10, color: C.faint }}>Progresso</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: C.green }}>{progress}%</div>
-          </div>
+        <nav className="nav" aria-label="Seções">
+          {NAV.map(([v, ico, l]) => (
+            <button key={v} type="button" className="nav-btn" aria-current={view === v ? "page" : undefined} onClick={() => setView(v)}>
+              <span aria-hidden>{ico}</span>{l}
+            </button>
+          ))}
+        </nav>
+        <div className="top-actions">
+          {usage?.role === "admin" && <button type="button" className="icon-btn desk-only" onClick={() => setModal("usage")}>Gastos</button>}
+          <button type="button" className="icon-btn" aria-label="Configurações" title="Configurações" onClick={() => setModal("settings")}>Ajustes</button>
+          <button type="button" className="icon-btn desk-only" title="Sair" onClick={logout}>Sair</button>
         </div>
       </header>
-      <div style={{ height: 2, background: "#0D1F35" }}>
-        <div style={{ height: "100%", width: `${progress}%`, background: "linear-gradient(90deg,#0D9488,#7C3AED)", transition: "width .5s" }} />
-      </div>
+
+      <nav className="bottom-nav" aria-label="Seções">
+        {NAV.map(([v, ico, l]) => (
+          <button key={v} type="button" aria-current={view === v && !more ? "page" : undefined} onClick={() => { setMore(false); setView(v); }}>
+            <span className="ico" aria-hidden>{ico}</span>{l}
+          </button>
+        ))}
+        <button type="button" aria-current={more ? "page" : undefined} aria-expanded={more} onClick={() => setMore(!more)}>
+          <span className="ico" aria-hidden>☰</span>Mais
+        </button>
+      </nav>
+      {more && (
+        <div style={{ position: "fixed", inset: 0, zIndex: 150, background: "#0F172A55" }} onClick={() => setMore(false)}>
+          <div className="card" role="menu" onClick={(e) => e.stopPropagation()}
+            style={{ position: "absolute", left: 8, right: 8, bottom: "calc(72px + env(safe-area-inset-bottom))", padding: 6 }}>
+            {([
+              ...(usage?.role === "admin" ? [["Gastos e limites", () => setModal("usage")]] : []),
+              ["Configurações", () => setModal("settings")],
+              ["Sair", logout],
+            ] as [string, () => void][]).map(([l, fn]) => (
+              <button key={l} type="button" role="menuitem" onClick={() => { setMore(false); fn(); }}
+                style={{ display: "block", width: "100%", textAlign: "left", background: "transparent", border: 0, padding: "14px 12px", fontSize: 15, color: C.text, borderRadius: 8, cursor: "pointer" }}>{l}</button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div style={{ padding: "0 16px" }}><LimitBanner u={usage} /></div>
 
       {missingSetup && (
         <div style={{ maxWidth: 1120, margin: "16px auto 0", padding: "0 16px" }}>
-          <button type="button" onClick={() => setModal("settings")} style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "#1C1000",
-            border: "1px solid #B4530960", borderRadius: 10, padding: "12px 16px", color: "#FCD34D", fontSize: 13 }}>
+          <button type="button" onClick={() => setModal("settings")} style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "#FFFBEB",
+            border: "1px solid #FCD34D", borderRadius: 10, padding: "12px 16px", color: "#B45309", fontSize: 13 }}>
             ⚠ Banco desligado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY): nada está sendo salvo.
             {" "}Clique para ver o que configurar na Vercel.
           </button>
@@ -261,47 +262,53 @@ export default function SeoApp() {
       <div className="layout-single" hidden={view !== "radar"}>
         <Radar placesEnabled={!!status?.places} supabaseOn={supabaseOn} aiEnabled={!!status?.anthropic} sender={{ name: settings.name, consultant: settings.consultant }} usage={usage} onCreateClient={startFromProspect} />
       </div>
+      {view === "abordagem" && (
+        <div className="layout-single">
+          <h1 className="page-title">Abordagem</h1>
+          <p className="page-sub">Quem chamar hoje no WhatsApp, um por vez.</p>
+          <OutreachQueue projectId="" sender={{ name: settings.name, consultant: settings.consultant }} onUpdated={() => {}} />
+        </div>
+      )}
       {view === "exec" && (
       <div className="layout">
         <aside className="sidebar">
-          <p style={{ ...label, color: C.faint, fontSize: 10 }}>Etapas</p>
+          <div className="dash-card" style={{ padding: 12, marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: C.muted }}>Cliente</div>
+            <div style={{ fontWeight: 700, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{formData.clientName || "Novo cliente"}</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+              <button type="button" onClick={() => setModal("clients")} disabled={!supabaseOn} style={btn(C.panel2, C.text, { flex: 1, padding: "6px 8px", minHeight: 32 })}>Trocar</button>
+              <button type="button" onClick={() => (resultCount || clientLabel) && !confirm("Começar um cliente novo? O atual continua salvo.") ? null : reset()}
+                style={btn(C.panel2, C.text, { flex: 1, padding: "6px 8px", minHeight: 32 })}>+ Novo</button>
+            </div>
+          </div>
+          <div className="steps" role="tablist" aria-label="Etapas">
           {PHASES.map((p, i) => {
             const active = i === activePhase, done = completed.includes(i);
             return (
-              <button key={p.id} type="button" onClick={() => setActivePhase(i)} className="phase-btn"
-                style={{ background: active ? C.panel2 : "transparent", border: `1px solid ${active ? p.color + "55" : "transparent"}` }}>
-                <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12,
-                  background: done ? "#052E16" : active ? p.color + "18" : C.panel, border: `2px solid ${done ? C.green : active ? p.color : C.border}` }}>
-                  {done ? <span style={{ color: C.green, fontWeight: 700, fontSize: 11 }}>✓</span> : p.emoji}
+              <button key={p.id} type="button" role="tab" aria-selected={active} onClick={() => setActivePhase(i)} className="phase-btn"
+                style={{ background: active ? "#F0FDFA" : "transparent", border: `1px solid ${active ? "#99F6E4" : "transparent"}` }}>
+                <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700,
+                  background: done ? C.green : active ? C.teal : C.panel2, color: done || active ? "#fff" : C.muted }}>
+                  {done ? "✓" : i + 1}
                 </span>
                 <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: active ? C.text : done ? C.green : C.dim }}>{i + 1}. {p.title}</span>
-                  <span className="phase-sub" style={{ fontSize: 10.5, color: C.faint, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{STEP_HINT[i]}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: active ? C.text : C.body }}>{p.title}</span>
+                  <span className="phase-sub" style={{ fontSize: 11.5, color: C.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{STEP_HINT[i]}</span>
                 </span>
               </button>
             );
           })}
+          </div>
         </aside>
 
         <main style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ background: C.panel, border: `1px solid ${phase.color}25`, borderLeft: `4px solid ${phase.color}`, borderRadius: 12, padding: "18px 22px", marginBottom: 20 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <span style={{ fontSize: 26 }}>{phase.emoji}</span>
-              <div style={{ flex: 1 }}>
-                <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>{activePhase + 1}. {phase.title}</h1>
-                <p style={{ margin: "3px 0 0", fontSize: 13, color: C.dim }}>{phase.subtitle}</p>
-              </div>
-              <span style={{ fontSize: 11, color: phase.color, fontWeight: 700 }}>{activePhase + 1}/{PHASES.length}</span>
-            </div>
-          </div>
+          <h1 className="page-title">{activePhase + 1}. {phase.title}</h1>
+          <p className="page-sub">{phase.subtitle}</p>
 
           {formData.clientName && activePhase > 0 && (
-            <div className="dash-card" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16, padding: "10px 16px" }}>
-              <strong style={{ fontSize: 14 }}>🏢 {formData.clientName}</strong>
-              <span style={{ fontSize: 12, color: C.muted }}>{[formData.vertical, formData.city, formData.phone || "sem WhatsApp"].filter(Boolean).join(" · ")}</span>
-              <span style={{ marginLeft: "auto" }}>
-                <WhatsAppButton phone={formData.phone} text={`Olá! ${settings.consultant ? `Aqui é ${settings.consultant}. ` : ""}`} label="📲 WhatsApp" />
-              </span>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 16 }}>
+              <span style={{ fontSize: 13, color: C.muted, flex: 1, minWidth: 0 }}>{[formData.vertical, formData.city, formData.phone || "sem WhatsApp"].filter(Boolean).join(" · ")}</span>
+              <WhatsAppButton phone={formData.phone} text={`Olá! ${settings.consultant ? `Aqui é ${settings.consultant}. ` : ""}`} label="WhatsApp" />
             </div>
           )}
 
@@ -328,12 +335,12 @@ export default function SeoApp() {
               </div>
             ))}
             {phase.tips && (
-              <div style={{ background: C.panel, border: `1px solid ${C.borderBlue}`, borderRadius: 10, padding: 16 }}>
-                <p style={{ ...label, color: "#3B82F6" }}>Dicas</p>
-                {phase.tips.map((t, i) => (
-                  <p key={i} style={{ color: C.dim, fontSize: 13, margin: "0 0 6px", lineHeight: 1.6 }}>{t.replace(/\{clientName\}/g, formData.clientName || "o cliente")}</p>
-                ))}
-              </div>
+              <details style={{ marginTop: 8 }}>
+                <summary style={{ cursor: "pointer", fontSize: 13, color: C.muted }}>Dicas desta etapa</summary>
+                <ul style={{ margin: "8px 0 0", paddingLeft: 18, color: C.body, fontSize: 13, lineHeight: 1.7 }}>
+                  {phase.tips.map((t, i) => <li key={i}>{t.replace(/^\S+\s/, "").replace(/\{clientName\}/g, formData.clientName || "o cliente")}</li>)}
+                </ul>
+              </details>
             )}
           </div>
 
@@ -343,22 +350,21 @@ export default function SeoApp() {
                 style={btn("transparent", C.muted, { border: `1px solid ${C.border}`, padding: "11px 18px", fontSize: 13 })}>← Voltar</button>
             )}
             <button type="button" onClick={() => markDone(activePhase)}
-              style={btn(`linear-gradient(135deg,${phase.color},${phase.color}BB)`, "#fff", { padding: "11px 26px", fontSize: 13, flex: activePhase === 0 ? 1 : undefined })}>
-              {activePhase === PHASES.length - 1 ? "✓ Concluir entrega" : "Concluir etapa →"}
+              style={btn(primary, "#fff", { padding: "11px 26px", fontSize: 14, flex: 1 })}>
+              {activePhase === PHASES.length - 1 ? "Concluir entrega" : "Concluir etapa →"}
             </button>
-            {activePhase === PHASES.length - 1 && resultCount > 0 && (
-              <button type="button" onClick={() => setModal("report")} style={btn(primary, "#fff", { padding: "11px 22px", fontSize: 13 })}>📋 Ver relatório →</button>
+            {resultCount > 0 && (
+              <button type="button" onClick={() => setModal("report")} style={btn("transparent", C.body, { border: `1px solid ${C.border}`, padding: "11px 18px" })}>Relatório ({resultCount})</button>
             )}
           </div>
 
           {completed.length === PHASES.length && (
-            <div style={{ marginTop: 22, background: "#052E16", border: "1px solid #166534", borderRadius: 12, padding: 24, textAlign: "center" }}>
-              <p style={{ fontSize: 30, margin: "0 0 10px" }}>🚀</p>
-              <h3 style={{ color: "#6EE7B7", margin: "0 0 8px" }}>Processo concluído!</h3>
-              <p style={{ color: "#4ADE80", margin: "0 0 20px", fontSize: 13 }}>
-                {clientLabel} · {formData.city} · {resultCount} seções{clientId ? " · 💾 salvo no Supabase" : ""}
+            <div style={{ marginTop: 22, background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 12, padding: 24, textAlign: "center" }}>
+              <h3 style={{ color: "#047857", margin: "0 0 8px" }}>Cliente concluído</h3>
+              <p style={{ color: "#15803D", margin: "0 0 20px", fontSize: 13 }}>
+                {clientLabel} · {formData.city} · {resultCount} seções{clientId ? " · salvo" : ""}
               </p>
-              <button type="button" onClick={() => setModal("report")} style={btn(primary, "#fff", { padding: "12px 24px", fontSize: 14 })}>📋 Gerar Relatório Final</button>
+              <button type="button" onClick={() => setModal("report")} style={btn(primary, "#fff", { padding: "12px 24px", fontSize: 14 })}>Ver relatório final</button>
             </div>
           )}
         </main>
@@ -371,6 +377,9 @@ export default function SeoApp() {
 const STEP_HINT = ["dados e concorrentes", "o que está faltando", "site + proposta", "trabalho no Google"];
 /** Clientes antigos tinham 7 fases: ignora índices que não existem mais. */
 const validSteps = (v: unknown): number[] => (Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n >= 0 && n < PHASES.length) : []);
+
+type View = "radar" | "abordagem" | "exec";
+const NAV: [View, string, string][] = [["radar", "⌕", "Buscar"], ["abordagem", "✉", "Abordagem"], ["exec", "▤", "Clientes"]];
 
 function applyDefaults(p: FormData, s: Agency): FormData {
   return { ...p, vertical: p.vertical || s.default_vertical || "", city: p.city || s.default_city || "" };
@@ -389,7 +398,7 @@ function SetupForm({ phase, formData, onUpdate }: { phase: Phase; formData: Form
               : step.type === "tel" ? (
                 <>
                   <input type="tel" inputMode="tel" value={v} placeholder={step.placeholder} onChange={(e) => onUpdate(step.id, e.target.value)} style={input} />
-                  {v.trim() && !whatsappNumber(v) && <p style={{ fontSize: 12, color: "#FCD34D", margin: "6px 0 0" }}>Não parece um celular (DDD + 9 dígitos). Fixo não abre no WhatsApp.</p>}
+                  {v.trim() && !whatsappNumber(v) && <p style={{ fontSize: 12, color: "#B45309", margin: "6px 0 0" }}>Não parece um celular (DDD + 9 dígitos). Fixo não abre no WhatsApp.</p>}
                 </>
               )
               : step.type === "select" ? (

@@ -10,7 +10,7 @@ export type RegionResult = {
 export type ProjectLite = { id: string; name: string };
 
 // Magnitude = um matiz só, do claro ao escuro (nada de vermelho/verde de "status" para índice).
-const SEQ = ["#DDD6FE", "#C4B5FD", "#A78BFA", "#8B5CF6", "#7C3AED"];
+const SEQ = ["#CCFBF1", "#5EEAD4", "#0F766E", "#0F766E", "#0F766E"];
 const seq = (v: number) => SEQ[Math.min(SEQ.length - 1, Math.floor(v / 20))];
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 
@@ -106,8 +106,8 @@ export function RegionDashboard({ region, projects, onOpenQuery, onAddToProject,
           <h3 className="dash-title">Onde atacar primeiro</h3>
           <p className="dash-sub">Mais para cima = mais empresas sem site · mais para a esquerda = concorrência mais fraca · bolha = leads quentes</p>
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Gráfico de dispersão das cidades">
-            <rect x={P.l} y={P.t} width={(W - P.l - P.r) / 2} height={(H - P.t - P.b) / 2} fill="#7C3AED" opacity={0.08} />
-            <text x={P.l + 6} y={P.t + 14} fontSize={10} fill="#A78BFA">melhor quadrante</text>
+            <rect x={P.l} y={P.t} width={(W - P.l - P.r) / 2} height={(H - P.t - P.b) / 2} fill="#0F766E" opacity={0.08} />
+            <text x={P.l + 6} y={P.t + 14} fontSize={10} fill="#0F766E">melhor quadrante</text>
             {[0, 25, 50, 75, 100].map((t) => (
               <g key={t}>
                 <line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke={C.border} strokeWidth={1} />
@@ -171,9 +171,9 @@ export function RegionDashboard({ region, projects, onOpenQuery, onAddToProject,
           )}
           <button type="button" disabled={busy || !sel.length || (projectId === "__new" && newName.trim().length < 2)} onClick={add}
             style={btn(sel.length ? primary : C.border, sel.length ? "#fff" : C.dim)}>
-            {busy ? "Adicionando…" : `📁 Adicionar ${sel.length} cidade(s) · ~${selCount} leads`}
+            {busy ? "Adicionando…" : `Adicionar ${sel.length} cidade(s) · ~${selCount} leads`}
           </button>
-          {msg && <span role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? "#6EE7B7" : C.red }}>{msg}</span>}
+          {msg && <span role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? "#047857" : C.red }}>{msg}</span>}
         </div>
       </section>
     </div>

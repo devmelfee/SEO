@@ -14,7 +14,7 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("pt-BR", { day: "2
 /** Botão verde que abre o WhatsApp do cliente — ou explica o que falta. */
 export function WhatsAppButton({ phone, text, label: l, onSent }: { phone?: string; text: string; label: string; onSent?: () => void }) {
   const link = clientWaLink(phone, text);
-  if (!link) return <span style={{ fontSize: 12, color: "#FCD34D" }}>📲 Para enviar pelo WhatsApp, preencha o celular do cliente na etapa 1.</span>;
+  if (!link) return <span style={{ fontSize: 12, color: "#B45309" }}>Para enviar pelo WhatsApp, preencha o celular do cliente na etapa 1.</span>;
   return (
     <button type="button" onClick={() => { window.open(link, "_blank", "noopener"); onSent?.(); }} style={btn("#16A34A", "#fff")}>{l}</button>
   );
@@ -31,13 +31,13 @@ export function DiagnosisSend({ clientId, phone, sender }: { clientId: string | 
   }, [clientId, sender]);
   if (!clientId) return null;
   return (
-    <div className="dash-card" style={{ marginBottom: 20, borderColor: "#166534" }}>
-      <h3 className="dash-title">📲 Mandar o diagnóstico no WhatsApp</h3>
+    <div className="dash-card" style={{ marginBottom: 20, borderColor: "#86EFAC" }}>
+      <h3 className="dash-title">Mandar o diagnóstico no WhatsApp</h3>
       <p className="dash-sub">Os 3 problemas principais, em linguagem de dono de empresa. Edite à vontade antes de enviar.</p>
       <textarea aria-label="Mensagem do diagnóstico" value={text} onChange={(e) => setText(e.target.value)} rows={7}
         style={{ ...input, fontSize: 13, lineHeight: 1.55, resize: "vertical", marginBottom: 10 }} />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <WhatsAppButton phone={phone} text={text} label="📲 Enviar no WhatsApp do cliente" />
+        <WhatsAppButton phone={phone} text={text} label="Enviar no WhatsApp do cliente" />
         <button type="button" onClick={() => copyText(text)} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>Copiar</button>
       </div>
     </div>
@@ -64,7 +64,7 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
   };
   useEffect(load, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!clientId) return <p style={{ color: "#FCD34D", fontSize: 13 }}>⚠ Conclua a etapa 1 (Cliente) com o banco ligado para montar a proposta.</p>;
+  if (!clientId) return <p style={{ color: "#B45309", fontSize: 13 }}>⚠ Conclua a etapa 1 (Cliente) com o banco ligado para montar a proposta.</p>;
   if (err && !d) return <p style={{ color: C.red, fontSize: 13 }}>⚠ {err}</p>;
   if (!d || !loaded) return <p style={{ color: C.dim, fontSize: 13 }}>Montando a proposta…</p>;
 
@@ -92,15 +92,16 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
   };
 
   const status = saved?.status === "aceita"
-    ? <span style={{ color: "#6EE7B7", fontWeight: 700 }}>✅ Aceita em {day(saved.accepted_at!)}</span>
+    ? <span style={{ color: "#047857", fontWeight: 700 }}>✅ Aceita em {day(saved.accepted_at!)}</span>
     : saved?.status === "enviada"
-      ? <span style={{ color: "#FBBF24", fontWeight: 700 }}>📨 Enviada {saved.sent_at ? day(saved.sent_at) : ""} · {saved.views ? `aberta ${saved.views}×` : "ainda não aberta"}</span>
+      ? <span style={{ color: "#D97706", fontWeight: 700 }}>Enviada {saved.sent_at ? day(saved.sent_at) : ""} · {saved.views ? `aberta ${saved.views}×` : "ainda não aberta"}</span>
       : saved ? <span style={{ color: C.muted }}>Rascunho salvo</span> : <span style={{ color: C.muted }}>Ainda não salva</span>;
 
   return (
     <div>
-      <details className="dash-card" style={{ marginBottom: 16 }} open={!d.siteUrl}>
-        <summary style={{ cursor: "pointer", fontWeight: 800, fontSize: 14 }}>🌐 Site de prévia {d.siteUrl ? "✓ pronto" : "(opcional — aumenta muito o fechamento)"}</summary>
+      <details className="dash-card" style={{ marginBottom: 16 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 15, display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <span>Site de prévia</span><span style={{ fontWeight: 500, fontSize: 13, color: d.siteUrl ? C.green : C.muted }}>{d.siteUrl ? "✓ pronto" : "opcional · criar ▾"}</span></summary>
         <div style={{ marginTop: 12 }}>
           <SiteBuilder target={loaded.prospectId ? { prospectId: loaded.prospectId } : { clientId }} aiEnabled={aiEnabled} />
           <button type="button" onClick={load} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}`, marginTop: 10, fontSize: 12 })}>↻ Colocar o link do site na proposta</button>
@@ -109,7 +110,7 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
 
       <div className="dash-card" style={{ marginBottom: 16 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 12 }}>
-          <h3 className="dash-title" style={{ margin: 0 }}>💼 Proposta para {d.company || "a empresa"}</h3>
+          <h3 className="dash-title" style={{ margin: 0 }}>Proposta para {d.company || "a empresa"}</h3>
           <span style={{ fontSize: 12, marginLeft: "auto" }}>{status}</span>
         </div>
 
@@ -123,7 +124,7 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
           <div><label style={label}>Mensalidade depois</label>
             <input value={d.monthlyPrice} placeholder="Ex: R$ 997" onChange={(e) => set("monthlyPrice", e.target.value)} style={{ ...input, fontSize: 13 }} /></div>
         </div>
-        {!d.agencyWhatsapp && <p style={{ fontSize: 12, color: "#FCD34D", margin: "8px 0 0" }}>⚠ Cadastre o WhatsApp da agência em ⚙️ Configurações → Agência para o "Aceitar" chegar até você.</p>}
+        {!d.agencyWhatsapp && <p style={{ fontSize: 12, color: "#B45309", margin: "8px 0 0" }}>⚠ Cadastre o WhatsApp da agência em Configurações → Agência para o "Aceitar" chegar até você.</p>}
 
         <p style={{ ...label, marginTop: 16 }}>O que encontramos (vem do Radar; edite à vontade)</p>
         {d.problems.map((p, i) => (
@@ -132,7 +133,7 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
               style={{ ...input, flex: "1 1 160px", fontSize: 13, fontWeight: 700 }} />
             <input aria-label="Detalhe" value={p.detail} onChange={(e) => set("problems", d.problems.map((x, j) => (j === i ? { ...x, detail: e.target.value } : x)))}
               style={{ ...input, flex: "3 1 260px", fontSize: 13 }} />
-            <button type="button" aria-label="Remover" onClick={() => set("problems", d.problems.filter((_, j) => j !== i))} style={btn("#1C0A0A", C.red)}>✕</button>
+            <button type="button" aria-label="Remover" onClick={() => set("problems", d.problems.filter((_, j) => j !== i))} style={btn("#FEF2F2", C.red)}>✕</button>
           </div>
         ))}
         {d.problems.length < 10 && (
@@ -151,18 +152,18 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
           style={{ ...input, fontSize: 13, lineHeight: 1.55, resize: "vertical" }} />
         <label style={{ ...label, marginTop: 12, display: "block" }} htmlFor="terms">Condições</label>
         <input id="terms" value={d.terms} onChange={(e) => set("terms", e.target.value)} style={{ ...input, fontSize: 13 }} />
-        <p style={{ fontSize: 12, color: C.muted, margin: "8px 0 0" }}>{d.siteUrl ? `🌐 Link do site na proposta: ${d.siteUrl}` : "Sem site de prévia na proposta."}</p>
+        <p style={{ fontSize: 12, color: C.muted, margin: "8px 0 0" }}>{d.siteUrl ? `Link do site na proposta: ${d.siteUrl}` : "Sem site de prévia na proposta."}</p>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16, alignItems: "center" }}>
-          <button type="button" disabled={busy || !d.company.trim()} onClick={save} style={btn(primary)}>{busy ? "Salvando…" : dirty || !saved ? "💾 Salvar proposta" : "✓ Salva"}</button>
+          <button type="button" disabled={busy || !d.company.trim()} onClick={save} style={btn(primary)}>{busy ? "Salvando…" : dirty || !saved ? "Salvar proposta" : "✓ Salva"}</button>
           {whatsappNumber(toPhone)
-            ? <button type="button" disabled={busy} onClick={send} style={btn("#16A34A", "#fff")}>📲 Enviar proposta no WhatsApp</button>
-            : <span style={{ fontSize: 12, color: "#FCD34D" }}>📲 Preencha o celular do cliente na etapa 1 para enviar pelo WhatsApp.</span>}
+            ? <button type="button" disabled={busy} onClick={send} style={btn("#16A34A", "#fff")}>Enviar proposta no WhatsApp</button>
+            : <span style={{ fontSize: 12, color: "#B45309" }}>Preencha o celular do cliente na etapa 1 para enviar pelo WhatsApp.</span>}
           {saved && <>
-            <a href={`/p/${saved.slug}?preview=1`} target="_blank" rel="noreferrer" style={{ ...btn(C.border, C.text), textDecoration: "none" }}>👁 Ver como o cliente vê</a>
+            <a href={`/p/${saved.slug}?preview=1`} target="_blank" rel="noreferrer" style={{ ...btn(C.border, C.text), textDecoration: "none" }}>Ver como o cliente vê</a>
             <button type="button" onClick={async () => ok((await copyText(url)) ? "Link copiado." : "Não deu para copiar.")} style={btn(C.border, C.text)}>Copiar link</button>
           </>}
-          {msg && <span role="status" style={{ color: "#6EE7B7", fontSize: 12 }}>✓ {msg}</span>}
+          {msg && <span role="status" style={{ color: "#047857", fontSize: 12 }}>✓ {msg}</span>}
           {err && <span role="alert" style={{ color: C.red, fontSize: 12 }}>⚠ {err}</span>}
         </div>
         {saved && <p style={{ fontSize: 11.5, color: C.dim, margin: "8px 0 0", wordBreak: "break-all" }}>{url} · o cliente pode salvar em PDF pelo navegador.</p>}

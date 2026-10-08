@@ -9,7 +9,7 @@ export type Project = {
 
 // Etapas do funil em ordem; cores de status reservadas para o andamento (com rótulo ao lado, nunca só a cor).
 const STAGES: [keyof Project["stats"], string, string][] = [
-  ["novo", "Novos", "#60A5FA"], ["abordado", "Abordados", "#FBBF24"], ["respondeu", "Responderam", "#F472B6"], ["proposta", "Proposta", "#A78BFA"], ["fechado", "Fechados", "#10B981"],
+  ["novo", "Novos", "#2563EB"], ["abordado", "Abordados", "#D97706"], ["respondeu", "Responderam", "#DB2777"], ["proposta", "Proposta", "#0F766E"], ["fechado", "Fechados", "#059669"],
 ];
 
 export function ProjectsPanel({ projects, onOpen, onCreate, onDelete }: {
@@ -41,7 +41,7 @@ export function ProjectsPanel({ projects, onOpen, onCreate, onDelete }: {
 
       {!projects.length && (
         <p style={{ color: C.dim, fontSize: 13, textAlign: "center", padding: "32px 0" }}>
-          Nenhum projeto ainda. Crie um aqui ou selecione cidades em 🧭 Onde prospectar e clique em "Adicionar".
+          Nenhum projeto ainda. Crie um aqui ou selecione cidades em Onde prospectar e clique em "Adicionar".
         </p>
       )}
 
@@ -68,7 +68,7 @@ export function ProjectsPanel({ projects, onOpen, onCreate, onDelete }: {
                 {STAGES.map(([k, l, c]) => (
                   <span key={k}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: c, marginRight: 5 }} />{l} <strong>{s[k]}</strong></span>
                 ))}
-                <span style={{ color: C.muted }}>🔥 {s.quentes} quentes · {s.descartado} descartados</span>
+                <span style={{ color: C.muted }}>{s.quentes} quentes · {s.descartado} descartados</span>
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <button type="button" onClick={() => onOpen(p)} style={btn(primary)}>Trabalhar leads →</button>

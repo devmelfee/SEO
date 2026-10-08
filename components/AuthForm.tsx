@@ -34,7 +34,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
   if (!url || !anonKey) {
     return (
       <Card title="Login não configurado">
-        <p style={{ color: "#FCD34D", fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+        <p style={{ color: "#B45309", fontSize: 13, lineHeight: 1.7, margin: 0 }}>
           Na Vercel, em <strong>Settings → Environment Variables</strong>, cadastre <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code>
           {" "}(Supabase → Project Settings → API → chave <em>anon / publishable</em>) e faça <strong>Redeploy</strong>.
         </p>
@@ -90,7 +90,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
   return (
     <Card title={TITLES[mode]}>
       {done ? (
-        <p role="status" style={{ color: "#6EE7B7", fontSize: 14, lineHeight: 1.6 }}>✓ {done}</p>
+        <p role="status" style={{ color: "#047857", fontSize: 14, lineHeight: 1.6 }}>✓ {done}</p>
       ) : (
         <form onSubmit={submit}>
           {showEmail && <Field id="email" label="E-mail">
@@ -129,7 +129,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
       <div style={{ width: "100%", maxWidth: 400, background: C.panel, border: `1px solid ${C.borderBlue}`, borderRadius: 16, padding: 28 }}>
-        <div style={{ fontSize: 28, marginBottom: 6 }}>📍</div>
+        <div style={{ fontSize: 28, marginBottom: 6 }}></div>
         <div style={{ color: C.muted, fontSize: 12 }}>SEO Local Agency</div>
         <h1 style={{ margin: "2px 0 18px", fontSize: 20 }}>{title}</h1>
         {children}

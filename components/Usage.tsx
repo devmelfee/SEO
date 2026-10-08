@@ -39,10 +39,10 @@ export function requestLink(u: MyUsage | null, what = "consultas"): string | nul
 
 export function RequestMore({ u, what, compact }: { u: MyUsage | null; what?: string; compact?: boolean }) {
   const link = requestLink(u, what);
-  if (!link) return <span style={{ fontSize: 11, color: C.dim }}>Para pedir mais, o administrador precisa cadastrar o WhatsApp em ⚙️ Configurações → Agência.</span>;
+  if (!link) return <span style={{ fontSize: 11, color: C.dim }}>Para pedir mais, o administrador precisa cadastrar o WhatsApp em Configurações → Agência.</span>;
   return (
     <a href={link} target="_blank" rel="noreferrer" style={{ ...btn("#16A34A", "#fff", compact ? { fontSize: 11, padding: "5px 10px" } : {}), textDecoration: "none" }}>
-      📲 Solicitar mais buscas
+      Pedir mais buscas
     </a>
   );
 }
@@ -50,10 +50,10 @@ export function RequestMore({ u, what, compact }: { u: MyUsage | null; what?: st
 function MeterBar({ m, label: l, unit }: { m: Meter; label: string; unit: string }) {
   if (m.limit === null) return <span style={{ fontSize: 11.5, color: C.muted }}>{l}: <strong style={{ color: C.text }}>{m.used}</strong> {unit} · sem limite</span>;
   const pct = Math.min(100, (100 * m.used) / Math.max(1, m.limit));
-  const color = pct >= 100 ? "#F87171" : pct >= 70 ? "#FBBF24" : "#10B981";
+  const color = pct >= 100 ? "#DC2626" : pct >= 70 ? "#D97706" : "#059669";
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", gap: 3, minWidth: 120 }}>
-      <span style={{ fontSize: 11.5, color: C.muted }}>{l}: <strong style={{ color: pct >= 100 ? "#F87171" : C.text }}>{m.used}/{m.limit}</strong> {unit}</span>
+      <span style={{ fontSize: 11.5, color: C.muted }}>{l}: <strong style={{ color: pct >= 100 ? "#DC2626" : C.text }}>{m.used}/{m.limit}</strong> {unit}</span>
       <span style={{ height: 4, background: C.panel2, borderRadius: 2 }} role="img" aria-label={`${m.used} de ${m.limit}`}>
         <span style={{ display: "block", width: `${pct}%`, height: "100%", background: color, borderRadius: 2 }} />
       </span>
@@ -62,19 +62,32 @@ function MeterBar({ m, label: l, unit }: { m: Meter; label: string; unit: string
   );
 }
 
-/** Faixa de uso no topo do Radar: quanto já foi usado na janela e na semana. */
+/** Uso da pessoa, discreto: só aparece para quem tem limite. Detalhes ao tocar. */
 export function UsageBar({ u }: { u: MyUsage | null }) {
-  if (!u) return null;
-  const full = u.limited && [u.places.window, u.places.week, u.llm.window, u.llm.week].some((m) => m.limit !== null && m.used >= m.limit);
+  const [open, setOpen] = useState(false);
+  if (!u || !u.limited) return null;
+  const frac = (m: Meter) => (m.limit ? m.used / m.limit : 0);
+  const worst = Math.max(...[u.places.window, u.places.week, u.llm.window, u.llm.week].map(frac));
+  const tone = worst >= 1 ? "#B91C1C" : worst >= 0.7 ? "#B45309" : C.muted;
+  const left = (m: Meters) => {
+    const vals = [m.window, m.week].filter((x) => x.limit !== null).map((x) => x.limit! - x.used);
+    return vals.length ? Math.max(0, Math.min(...vals)) : "∞";
+  };
   return (
-    <div className="dash-card" style={{ display: "flex", gap: 18, alignItems: "center", flexWrap: "wrap", marginBottom: 14, padding: "10px 16px",
-      borderColor: full ? "#7F1D1D" : undefined }}>
-      <strong style={{ fontSize: 12 }}>{u.limited ? "Seu uso" : "Seu uso (administrador, sem limite)"}</strong>
-      <MeterBar m={u.places.window} label={`🔎 Google · ${u.limits.window_hours}h`} unit="consultas" />
-      <MeterBar m={u.places.week} label="🔎 Google · semana" unit="consultas" />
-      <MeterBar m={u.llm.window} label={`✦ IA · ${u.limits.window_hours}h`} unit="gerações" />
-      <MeterBar m={u.llm.week} label="✦ IA · semana" unit="gerações" />
-      {u.limited && <span style={{ marginLeft: "auto" }}><RequestMore u={u} compact /></span>}
+    <div style={{ position: "relative" }}>
+      <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
+        style={{ ...btn("#fff", tone, { border: `1px solid ${C.border}`, borderRadius: 999, fontSize: 12.5, minHeight: 34, padding: "6px 12px" }) }}>
+        {left(u.places)} buscas · {left(u.llm)} IA restantes
+      </button>
+      {open && (
+        <div className="card" style={{ position: "absolute", right: 0, top: 42, zIndex: 50, width: 290, padding: 14, display: "grid", gap: 10, boxShadow: "0 10px 30px #0F172A22" }}>
+          <MeterBar m={u.places.window} label={`Buscas · ${u.limits.window_hours}h`} unit="" />
+          <MeterBar m={u.places.week} label="Buscas · semana" unit="" />
+          <MeterBar m={u.llm.window} label={`IA · ${u.limits.window_hours}h`} unit="" />
+          <MeterBar m={u.llm.week} label="IA · semana" unit="" />
+          <RequestMore u={u} compact />
+        </div>
+      )}
     </div>
   );
 }
@@ -89,9 +102,9 @@ export function LimitBanner({ u }: { u: MyUsage | null }) {
   }, []);
   if (!msg) return null;
   return (
-    <div role="alert" style={{ maxWidth: 1120, margin: "16px auto 0", padding: "12px 16px", background: "#1C0A0A", border: "1px solid #7F1D1D",
+    <div role="alert" style={{ maxWidth: 1120, margin: "16px auto 0", padding: "12px 16px", background: "#FEF2F2", border: "1px solid #FECACA",
       borderRadius: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-      <span style={{ fontSize: 13, color: "#FCA5A5", flex: 1, minWidth: 220 }}>⛔ {msg}</span>
+      <span style={{ fontSize: 13, color: "#B91C1C", flex: 1, minWidth: 220 }}>⛔ {msg}</span>
       <RequestMore u={u} what={/IA/.test(msg) ? "gerações de IA" : "consultas ao Google"} />
       <button type="button" onClick={() => setMsg("")} style={btn("transparent", C.dim, { border: `1px solid ${C.border}` })}>Fechar</button>
     </div>
@@ -112,8 +125,8 @@ type Report = { days: number; usdBrl: number; defaults: Limits; totals: Totals; 
   placesUsd: number; models: { text: string; site: string } };
 
 const ACTION: Record<string, string> = {
-  radar: "🔎 Busca no Radar", onde_prospectar: "🧭 Onde prospectar", concorrentes: "📊 Concorrentes (fase 1)",
-  texto_ia: "✦ Texto com IA", site_ia: "🌐 Site com IA",
+  radar: "Busca no Radar", onde_prospectar: "Onde prospectar", concorrentes: "Concorrentes (fase 1)",
+  texto_ia: "Texto com IA", site_ia: "Site com IA",
 };
 const FIELDS: [keyof Limits, string][] = [
   ["window_hours", "Janela (horas)"], ["searches_window", "Consultas Google / janela"], ["searches_week", "Consultas Google / semana"],
@@ -169,13 +182,13 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
   const recent = (r?.recent ?? []).filter((e) => !who || e.user_email === who);
 
   return (
-    <Shell title="📊 Controle de gastos" subtitle="Consultas ao Google Places e gerações de IA, por pessoa" onClose={onClose} width={1040}>
+    <Shell title="Controle de gastos" subtitle="Consultas ao Google Places e gerações de IA, por pessoa" onClose={onClose} width={1040}>
       {err && <p style={{ color: C.red, fontSize: 13 }}>⚠ {err}</p>}
-      {flash && <p role="status" style={{ color: "#6EE7B7", fontSize: 13 }}>✓ {flash}</p>}
+      {flash && <p role="status" style={{ color: "#047857", fontSize: 13 }}>✓ {flash}</p>}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
         {[[1, "Hoje (24h)"], [7, "7 dias"], [30, "30 dias"], [90, "90 dias"]].map(([d, l]) => (
           <button key={d} type="button" onClick={() => setDays(d as number)}
-            style={btn(days === d ? "#7C3AED" : C.panel2, days === d ? "#fff" : C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>{l}</button>
+            style={btn(days === d ? "#0F766E" : C.panel2, days === d ? "#fff" : C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>{l}</button>
         ))}
         <span style={{ fontSize: 11, color: C.dim, marginLeft: "auto" }}>Custos estimados pela tabela de preços (Google: US$ 0,035 por consulta; IA: por token).</span>
       </div>
@@ -215,12 +228,12 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
                   <MeterBar m={p.llm.week} label="IA semana" unit="" />
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {wa && <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" style={{ ...btn("#16A34A", "#fff", { fontSize: 12 }), textDecoration: "none" }}>📲 WhatsApp</a>}
+                  {wa && <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" style={{ ...btn("#16A34A", "#fff", { fontSize: 12 }), textDecoration: "none" }}>WhatsApp</a>}
                   {p.role !== "removido" && <>
                     <button type="button" onClick={() => setEditing(editing === p.email ? null : p.email)} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}`, fontSize: 12 })}>Limites</button>
                     <button type="button" title="Zera a contagem da janela e da semana"
                       onClick={async () => { try { await patch({ email: p.email, reset: true }); ok(`Contagem de ${p.email} zerada.`); } catch (e) { setErr((e as Error).message); } }}
-                      style={btn(C.panel2, "#6EE7B7", { border: `1px solid ${C.border}`, fontSize: 12 })}>Liberar agora</button>
+                      style={btn(C.panel2, "#047857", { border: `1px solid ${C.border}`, fontSize: 12 })}>Liberar agora</button>
                   </>}
                   <button type="button" onClick={() => setWho(who === p.email ? "" : p.email)} style={btn(C.panel2, C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>
                     {who === p.email ? "Ver todos" : "Buscas"}</button>
@@ -251,7 +264,7 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
         <ModelsAndCosts r={r} rate={rate} onSaved={() => ok("Modelo salvo.")} onError={setErr} />
 
         <details className="dash-card" style={{ margin: "16px 0" }}>
-          <summary style={{ cursor: "pointer", fontWeight: 800, fontSize: 14 }}>⚙️ Limite padrão da equipe (vale para quem não tem limite próprio)</summary>
+          <summary style={{ cursor: "pointer", fontWeight: 800, fontSize: 14 }}>Limite padrão da equipe (vale para quem não tem limite próprio)</summary>
           <div style={{ marginTop: 12 }}>
             <LimitsEditor key={JSON.stringify(r.defaults)} value={r.defaults} saveLabel="Salvar padrão"
               onSave={async (l) => { await api("/api/usage", { method: "PUT", body: { default_limits: l, usd_brl: rate } }); ok("Padrão salvo."); }} />
@@ -332,12 +345,12 @@ function ModelsAndCosts({ r, rate, onSaved, onError }: { r: Report; rate: number
 
   const cell = (usdV: number, on: boolean) => (
     <td style={{ padding: "7px 8px", textAlign: "right", whiteSpace: "nowrap", fontWeight: on ? 800 : 400, color: on ? C.text : C.body,
-      background: on ? "#7C3AED22" : undefined }}>{reais(usdV)}</td>
+      background: on ? "#CCFBF1" : undefined }}>{reais(usdV)}</td>
   );
 
   return (
     <div className="dash-card" style={{ margin: "16px 0" }}>
-      <h3 className="dash-title">🤖 Modelo de IA e comparativo de custos</h3>
+      <h3 className="dash-title">Modelo de IA e comparativo de custos</h3>
       <p className="dash-sub">Escolha o modelo para cada uso. A troca vale para a próxima geração de toda a equipe.</p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, marginBottom: 16 }}>
         {(["text", "site"] as const).map((use) => (
@@ -360,11 +373,11 @@ function ModelsAndCosts({ r, rate, onSaved, onError }: { r: Report; rate: number
             {AI_MODELS.map((m) => <th key={m.id} style={{ textAlign: "right", padding: "6px 8px", borderBottom: `1px solid ${C.border}`, fontWeight: 600 }}>{m.tier}</th>)}
           </tr></thead>
           <tbody>
-            <tr style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "7px 8px" }}>🔎 Busca no Google (20 empresas)</td>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "7px 8px" }}>Busca no Google (20 empresas)</td>
               {AI_MODELS.map((m) => <td key={m.id} style={{ padding: "7px 8px", textAlign: "right", color: C.body }}>{reais(searchUsd)}</td>)}</tr>
-            <tr style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "7px 8px" }}>✦ Texto com IA {text.real ? <span style={{ color: C.dim }}>(média real)</span> : ""}</td>
+            <tr style={{ borderBottom: `1px solid ${C.border}` }}><td style={{ padding: "7px 8px" }}>Texto com IA {text.real ? <span style={{ color: C.dim }}>(média real)</span> : ""}</td>
               {AI_MODELS.map((m) => <Fragment key={m.id}>{cell(llmCostUsd(m.id, text.input, text.output), m.id === models.text)}</Fragment>)}</tr>
-            <tr><td style={{ padding: "7px 8px" }}>🌐 Site com IA {site.real ? <span style={{ color: C.dim }}>(média real)</span> : ""}</td>
+            <tr><td style={{ padding: "7px 8px" }}>Site com IA {site.real ? <span style={{ color: C.dim }}>(média real)</span> : ""}</td>
               {AI_MODELS.map((m) => <Fragment key={m.id}>{cell(llmCostUsd(m.id, site.input, site.output), m.id === models.site)}</Fragment>)}</tr>
           </tbody>
         </table>
@@ -380,7 +393,7 @@ function ModelsAndCosts({ r, rate, onSaved, onError }: { r: Report; rate: number
             <span style={{ fontSize: 12, color: b.m.id === "atual" ? C.text : C.body, fontWeight: b.m.id === "atual" ? 800 : 400 }}>{b.m.tier}</span>
             <span style={{ height: 14, background: C.panel2, borderRadius: 4 }}>
               <span style={{ display: "block", height: "100%", width: `${Math.max(1, (100 * b.usd) / max)}%`, borderRadius: "0 4px 4px 0",
-                background: b.m.id === "atual" ? "#A78BFA" : "#6D28D9" }} />
+                background: b.m.id === "atual" ? "#0F766E" : "#115E59" }} />
             </span>
             <span style={{ fontSize: 12, textAlign: "right", fontWeight: b.m.id === "atual" ? 800 : 400 }}>{reais(b.usd)}</span>
           </div>

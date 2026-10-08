@@ -1,29 +1,29 @@
 import type { CSSProperties } from "react";
 
+// Tema claro e sóbrio: superfícies brancas, texto em ardósia e UMA cor de destaque (verde-azulado).
 export const C = {
-  bg: "#030812", panel: "#080F1A", panel2: "#0A1628", deep: "#060D18", border: "#1E293B", borderBlue: "#1E3A5F",
-  text: "#F1F5F9", body: "#CBD5E1", muted: "#64748B", dim: "#475569", faint: "#334155",
-  teal: "#0D9488", blue: "#60A5FA", green: "#10B981", red: "#FCA5A5",
+  bg: "#F6F7F9", panel: "#FFFFFF", panel2: "#F1F5F9", deep: "#EEF2F6", border: "#E2E8F0", borderBlue: "#CBD5E1",
+  text: "#0F172A", body: "#334155", muted: "#64748B", dim: "#64748B", faint: "#94A3B8",
+  teal: "#0F766E", blue: "#1D4ED8", green: "#047857", red: "#B91C1C",
 };
 
 export const input: CSSProperties = {
-  width: "100%", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text,
-  padding: "11px 13px", fontSize: 14, outline: "none", boxSizing: "border-box",
+  width: "100%", background: "#FFFFFF", border: `1px solid ${C.borderBlue}`, borderRadius: 8, color: C.text,
+  padding: "11px 13px", fontSize: 16, outline: "none", boxSizing: "border-box",
 };
 
 export const label: CSSProperties = {
-  display: "block", color: C.muted, fontSize: 11, fontWeight: 700, marginBottom: 7,
-  textTransform: "uppercase", letterSpacing: "0.07em",
+  display: "block", color: C.body, fontSize: 13, fontWeight: 600, marginBottom: 6,
 };
 
 export const btn = (bg: string, color = "#fff", extra: CSSProperties = {}): CSSProperties => ({
-  background: bg, color, border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 12,
-  fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", ...extra,
+  background: bg, color, border: "none", borderRadius: 8, padding: "9px 14px", fontSize: 13,
+  fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap", minHeight: 38, ...extra,
 });
 
-export const primary = "linear-gradient(135deg,#0D9488,#0891B2)";
+export const primary = "#0F766E";
 
 export const overlay: CSSProperties = {
-  position: "fixed", inset: 0, background: "#000000DD", zIndex: 1000,
+  position: "fixed", inset: 0, background: "#0F172A80", zIndex: 1000,
   display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
 };

@@ -20,18 +20,17 @@ export function Shell({ title, subtitle, onClose, width = 560, children, footer 
     return () => window.removeEventListener("keydown", k);
   }, [onClose]);
   return (
-    <div style={overlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div role="dialog" aria-label={title} style={{ background: C.panel, border: `1px solid ${C.borderBlue}`, borderRadius: 16, width: "100%",
-        maxWidth: width, maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-        <div style={{ padding: "18px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>{title}</h2>
-            {subtitle && <p style={{ margin: "2px 0 0", fontSize: 12, color: C.dim }}>{subtitle}</p>}
+    <div className="modal-wrap" style={overlay} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div role="dialog" aria-label={title} className="modal-box" style={{ maxWidth: width }}>
+        <div style={{ padding: "14px 18px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h2>
+            {subtitle && <p style={{ margin: "2px 0 0", fontSize: 12.5, color: C.muted }}>{subtitle}</p>}
           </div>
-          <button type="button" aria-label="Fechar" onClick={onClose} style={btn(C.border, "#94A3B8", { width: 32, height: 32, padding: 0, fontSize: 15 })}>✕</button>
+          <button type="button" aria-label="Fechar" onClick={onClose} className="icon-btn">✕</button>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>{children}</div>
-        {footer && <div style={{ padding: "16px 24px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>{children}</div>
+        {footer && <div style={{ padding: "12px 18px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, justifyContent: "flex-end" }}>{footer}</div>}
       </div>
     </div>
   );
@@ -61,16 +60,16 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
 
   const row = (ok: boolean | undefined, name: string, env: string, help: string) => (
     <div style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.border}` }}>
-      <span style={{ fontSize: 16 }}>{ok ? "🟢" : "⚫"}</span>
+      <span style={{ fontSize: 16 }}>{ok ? "" : "⚫"}</span>
       <div>
-        <div style={{ fontWeight: 700, fontSize: 13, color: ok ? "#6EE7B7" : C.text }}>{name} {ok ? "— conectado" : "— falta configurar"}</div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: ok ? "#047857" : C.text }}>{name} {ok ? "— conectado" : "— falta configurar"}</div>
         <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}><code style={{ color: C.blue }}>{env}</code> · {help}</div>
       </div>
     </div>
   );
 
   return (
-    <Shell title="⚙️ Configurações" subtitle="Dados da agência ficam no Supabase; chaves ficam só na Vercel" onClose={onClose}
+    <Shell title="Configurações" subtitle="Dados da agência ficam no Supabase; chaves ficam só na Vercel" onClose={onClose}
       footer={tab !== "status" && tab !== "team" && <>
         {err && <span style={{ color: C.red, fontSize: 12, marginRight: "auto", alignSelf: "center" }}>{err}</span>}
         <button type="button" onClick={onClose} style={btn("transparent", C.muted, { border: `1px solid ${C.border}`, fontSize: 13 })}>Cancelar</button>
@@ -79,7 +78,7 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
         </button>
       </>}>
       <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-        {([["agency", "🏢 Agência"], ["comercial", "💰 Comercial"], ["defaults", "🎯 Padrões"], ["team", "👥 Equipe"], ["status", "🔌 Conexões"]] as const).map(([t, l]) => (
+        {([["agency", "Agência"], ["comercial", "Comercial"], ["defaults", "Padrões"], ["team", "Equipe"], ["status", "Conexões"]] as const).map(([t, l]) => (
           <button key={t} type="button" onClick={() => setTab(t)}
             style={btn(tab === t ? C.panel2 : "transparent", tab === t ? C.blue : C.dim, { borderBottom: `2px solid ${tab === t ? C.teal : "transparent"}`, borderRadius: "8px 8px 0 0" })}>{l}</button>
         ))}
@@ -164,7 +163,7 @@ export function ClientsModal({ currentId, onOpen, onClose }: { currentId: string
   const filtered = (rows ?? []).filter((r) => `${r.name} ${r.vertical} ${r.city}`.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <Shell title="👥 Clientes" subtitle={rows ? `${rows.length} salvo(s)` : "Carregando…"} onClose={onClose} width={680}>
+    <Shell title="Clientes" subtitle={rows ? `${rows.length} salvo(s)` : "Carregando…"} onClose={onClose} width={680}>
       {err && <p style={{ color: C.red, fontSize: 13 }}>⚠ {err}</p>}
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por nome, nicho ou cidade…" style={{ ...input, marginBottom: 14, fontSize: 13 }} />
       {rows && !filtered.length && <p style={{ color: C.dim, fontSize: 13 }}>Nenhum cliente encontrado.</p>}
@@ -172,7 +171,7 @@ export function ClientsModal({ currentId, onOpen, onClose }: { currentId: string
         const sections = r.client_phases?.[0]?.count ?? 0;
         return (
           <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, borderRadius: 10,
-            background: r.id === currentId ? "#0D2137" : C.panel2, border: `1px solid ${r.id === currentId ? C.teal : C.border}` }}>
+            background: r.id === currentId ? "#F0FDFA" : C.panel2, border: `1px solid ${r.id === currentId ? C.teal : C.border}` }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name || "(sem nome)"}</div>
               <div style={{ fontSize: 12, color: C.muted }}>
@@ -183,14 +182,14 @@ export function ClientsModal({ currentId, onOpen, onClose }: { currentId: string
             {confirmDel === r.id ? (
               <>
                 <span style={{ color: C.red, fontSize: 12 }}>Apagar tudo?</span>
-                <button type="button" onClick={() => del(r.id)} style={btn("#7C2D12")}>Sim</button>
+                <button type="button" onClick={() => del(r.id)} style={btn("#B91C1C")}>Sim</button>
                 <button type="button" onClick={() => setConfirmDel(null)} style={btn(C.border, C.muted)}>Não</button>
               </>
             ) : (
               <>
                 <button type="button" onClick={() => onOpen(r.id)} disabled={r.id === currentId}
                   style={btn(r.id === currentId ? C.border : primary, r.id === currentId ? C.muted : "#fff")}>{r.id === currentId ? "Aberto" : "Abrir"}</button>
-                <button type="button" aria-label="Apagar" onClick={() => setConfirmDel(r.id)} style={btn("#1C0A0A", C.red)}>🗑</button>
+                <button type="button" aria-label="Apagar" onClick={() => setConfirmDel(r.id)} style={btn("#FEF2F2", C.red)}></button>
               </>
             )}
           </div>
@@ -228,7 +227,7 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
       generateText("Você é consultor de marketing digital sênior. Relatórios profissionais, claros, focados em ROI. Português brasileiro.",
         `${head}\n${rule}\n\n# Relatório de SEO Local — ${client}\n\n## Sumário Executivo\n## Situação Atual vs Potencial\n## Oportunidades Identificadas\n## Plano de Ação — 90 dias\n## Resultados Esperados\n## Investimento e Próximos Passos (preços em ${cur})\n\nMATERIAIS:\n${ctx}`, 8000),
       generateText("Você é consultor prático. Guias de execução diretos, checklists acionáveis. Português brasileiro.",
-        `${head}\n${rule}\n\n# Guia de Execução (uso interno)\n\n## ✅ Semana 1 — Ações imediatas\n## ✅ Semanas 2-4\n## ✅ Mês 2 e 3\n## 📊 Métricas semanais\n## 🚨 Sinais de alerta\n## 💬 Como reportar ao cliente\n\nMATERIAIS:\n${ctx}`, 8000),
+        `${head}\n${rule}\n\n# Guia de Execução (uso interno)\n\n## ✅ Semana 1 — Ações imediatas\n## ✅ Semanas 2-4\n## ✅ Mês 2 e 3\n## Métricas semanais\n## Sinais de alerta\n## Como reportar ao cliente\n\nMATERIAIS:\n${ctx}`, 8000),
     ]);
     if (rep.status === "fulfilled") setReport(rep.value);
     if (sum.status === "fulfilled") setSummary(sum.value);
@@ -253,16 +252,16 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
   };
 
   return (
-    <Shell title="📋 Relatório Final" subtitle={`${client} · ${formData.city ?? ""} · ${entries.length} seção(ões)`} onClose={onClose} width={820}>
-      {err && <p style={{ color: C.red, fontSize: 13, background: "#1C0A0A", padding: "8px 12px", borderRadius: 6 }}>⚠ {err}</p>}
+    <Shell title="Relatório Final" subtitle={`${client} · ${formData.city ?? ""} · ${entries.length} seção(ões)`} onClose={onClose} width={820}>
+      {err && <p style={{ color: C.red, fontSize: 13, background: "#FEF2F2", padding: "8px 12px", borderRadius: 6 }}>⚠ {err}</p>}
 
       {!report && !summary && !busy && (
         <div style={{ textAlign: "center", padding: "28px 12px" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
+          <div style={{ fontSize: 40, marginBottom: 12 }}></div>
           <h3 style={{ margin: "0 0 16px", fontSize: 17 }}>Gerar relatório para o cliente + guia de execução</h3>
           {!entries.length && <p style={{ color: C.red, fontSize: 12 }}>⚠ Gere pelo menos 1 seção antes.</p>}
           <button type="button" onClick={generate} disabled={!entries.length}
-            style={btn(entries.length ? primary : C.border, entries.length ? "#fff" : C.dim, { padding: "14px 32px", fontSize: 14, borderRadius: 10 })}>✦ Gerar com IA</button>
+            style={btn(entries.length ? primary : C.border, entries.length ? "#fff" : C.dim, { padding: "14px 32px", fontSize: 14, borderRadius: 10 })}>Gerar com IA</button>
         </div>
       )}
 
@@ -276,15 +275,15 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
       {(report || summary) && !busy && (
         <div>
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
-            {([["client", "📊 Para o cliente"], ["summary", "⚡ Guia prático (você)"]] as const).map(([t, l]) => (
+            {([["client", "Para o cliente"], ["summary", "Guia prático (você)"]] as const).map(([t, l]) => (
               <button key={t} type="button" onClick={() => setTab(t)}
-                style={btn(tab === t ? (t === "client" ? C.teal : "#7C3AED") : C.panel2, tab === t ? "#fff" : C.dim, { fontSize: 13 })}>{l}</button>
+                style={btn(tab === t ? (t === "client" ? C.teal : "#0F766E") : C.panel2, tab === t ? "#fff" : C.dim, { fontSize: 13 })}>{l}</button>
             ))}
             <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
               <button type="button" disabled={!active} onClick={async () => { if (await copyText(active)) { setCopied(true); setTimeout(() => setCopied(false), 2000); } }}
-                style={btn("#0D2137", copied ? "#6EE7B7" : C.blue)}>{copied ? "✓ Copiado" : "Copiar"}</button>
+                style={btn("#F0FDFA", copied ? "#047857" : C.blue)}>{copied ? "✓ Copiado" : "Copiar"}</button>
               <button type="button" disabled={!active} onClick={() => downloadTxt(`${slug}-${tab === "client" ? "relatorio-cliente" : "guia-execucao"}.txt`, active)}
-                style={btn("#0D2137", C.blue)}>⬇ .txt</button>
+                style={btn("#F0FDFA", C.blue)}>⬇ .txt</button>
             </div>
           </div>
           <div style={{ color: C.body, fontSize: 13, lineHeight: 1.85, whiteSpace: "pre-wrap" }}>{active || "Esta parte falhou — use Regenerar."}</div>
@@ -293,11 +292,11 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
             <button type="button" onClick={downloadAll} style={btn(primary, "#fff", { padding: "12px 20px", fontSize: 13 })}>⬇ Baixar tudo (.txt)</button>
             <button type="button" onClick={generate} style={btn("transparent", C.muted, { border: `1px solid ${C.faint}`, padding: "12px 20px", fontSize: 13 })}>↺ Regenerar</button>
             {!confirmReset ? (
-              <button type="button" onClick={() => setConfirmReset(true)} style={btn("#1C0A0A", C.red, { marginLeft: "auto", border: "1px solid #7C2D12", padding: "12px 20px", fontSize: 13 })}>🔄 Novo cliente</button>
+              <button type="button" onClick={() => setConfirmReset(true)} style={btn("#FEF2F2", C.red, { marginLeft: "auto", border: "1px solid #B91C1C", padding: "12px 20px", fontSize: 13 })}>Novo cliente</button>
             ) : (
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ color: C.red, fontSize: 12 }}>Começar outro cliente?</span>
-                <button type="button" onClick={() => { onReset(); onClose(); }} style={btn("#7C2D12")}>Sim</button>
+                <button type="button" onClick={() => { onReset(); onClose(); }} style={btn("#B91C1C")}>Sim</button>
                 <button type="button" onClick={() => setConfirmReset(false)} style={btn(C.border, C.muted)}>Não</button>
               </div>
             )}
@@ -363,10 +362,10 @@ function TeamTab() {
               style={{ ...input, width: 150, fontSize: 12, padding: "6px 8px" }} />
           ) : <span style={{ fontSize: 12, color: C.muted }}>{m.phone || "—"}</span>}
           {m.phone && whatsappNumber(m.phone) && (
-            <a href={`https://wa.me/${whatsappNumber(m.phone)}`} target="_blank" rel="noreferrer" title="Abrir WhatsApp" style={{ ...btn("#16A34A", "#fff", { fontSize: 12, padding: "6px 9px" }), textDecoration: "none" }}>📲</a>
+            <a href={`https://wa.me/${whatsappNumber(m.phone)}`} target="_blank" rel="noreferrer" title="Abrir WhatsApp" style={{ ...btn("#16A34A", "#fff", { fontSize: 12, padding: "6px 9px" }), textDecoration: "none" }}></a>
           )}
           {isAdmin && m.email !== data.me.email.toLowerCase() && (
-            <button type="button" onClick={() => remove(m.email)} style={btn("#1C0A0A", C.red)}>Remover</button>
+            <button type="button" onClick={() => remove(m.email)} style={btn("#FEF2F2", C.red)}>Remover</button>
           )}
         </div>
       ))}

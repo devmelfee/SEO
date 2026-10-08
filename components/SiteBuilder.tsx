@@ -70,15 +70,15 @@ export function SiteBuilder({ target, aiEnabled }: { target: Target; aiEnabled: 
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button type="button" disabled={!valid || !!busy} onClick={() => publish("modelo")} style={btn(primary)}>
-          {busy === "modelo" ? "Gerando…" : "⚡ Gerar com modelo (na hora)"}
+          {busy === "modelo" ? "Gerando…" : "Gerar com modelo (na hora)"}
         </button>
         <button type="button" disabled={!valid || !!busy || !aiEnabled} onClick={() => publish("ia")}
           title={aiEnabled ? "" : "Configure ANTHROPIC_API_KEY para gerar com IA"}
-          style={btn(aiEnabled ? "linear-gradient(135deg,#7C3AED,#6D28D9)" : C.border, aiEnabled ? "#fff" : C.dim)}>
-          {busy === "ia" ? "✦ A IA está criando (até 1 min)…" : "✦ Gerar com IA"}
+          style={btn(aiEnabled ? "#0F766E" : C.border, aiEnabled ? "#fff" : C.dim)}>
+          {busy === "ia" ? "A IA está criando (até 1 min)…" : "Gerar com IA"}
         </button>
         <button type="button" disabled={!valid} onClick={async () => { const p = buildSitePrompt(data); ok((await copyText(`${p.system}\n\n${p.prompt}`)) ? "Prompt copiado — cole no Claude.ai" : "Não deu para copiar"); }}
-          style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>📋 Copiar prompt</button>
+          style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>Copiar prompt</button>
         <button type="button" onClick={() => setPaste(paste === null ? "" : null)} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}` })}>
           {paste === null ? "Colar HTML pronto" : "Cancelar colagem"}
         </button>
@@ -95,12 +95,12 @@ export function SiteBuilder({ target, aiEnabled }: { target: Target; aiEnabled: 
       )}
 
       {err && <p role="alert" style={{ color: C.red, fontSize: 13, marginTop: 10 }}>⚠ {err}</p>}
-      {flash && <p role="status" style={{ color: "#6EE7B7", fontSize: 13, marginTop: 10 }}>✓ {flash}</p>}
+      {flash && <p role="status" style={{ color: "#047857", fontSize: 13, marginTop: 10 }}>✓ {flash}</p>}
 
       {site && (
         <div style={{ marginTop: 16, background: C.panel2, border: `1px solid ${C.borderBlue}`, borderRadius: 12, padding: 14 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <strong style={{ fontSize: 13 }}>🌐 Site publicado</strong>
+            <strong style={{ fontSize: 13 }}>Site publicado</strong>
             <span style={{ fontSize: 11, color: C.muted }}>({site.source === "ia" ? "gerado por IA" : site.source === "manual" ? "HTML colado" : "modelo"} · {site.views} visita{site.views === 1 ? "" : "s"})</span>
           </div>
           <a href={url} target="_blank" rel="noreferrer" style={{ color: C.blue, fontSize: 13, wordBreak: "break-all" }}>{url}</a>

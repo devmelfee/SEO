@@ -38,14 +38,11 @@ export function UrlField({ value, onChange }: { value: string; onChange: (v: str
     <div>
       <div style={{ position: "relative" }}>
         <input type="url" value={value} placeholder="https://…" onChange={(e) => onChange(e.target.value)}
-          style={{ ...input, border: `1px solid ${color}`, paddingLeft: 40 }} />
-        <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 14 }}>
-          {status === "ok" ? "🔗" : status === "warn" ? "⚠️" : "🌐"}
-        </span>
+          style={{ ...input, border: `1px solid ${color}` }} />
       </div>
       <div style={{ marginTop: 6, fontSize: 12, color: status === "idle" ? C.faint : color }}>
         {status === "ok" ? "✓ Os prompts vão citar este site"
-          : status === "warn" ? "⚠️ Endereço inválido — comece com https://"
+          : status === "warn" ? "⚠ Endereço inválido — comece com https://"
           : "Opcional — site, Google Maps ou perfil do cliente"}
       </div>
     </div>

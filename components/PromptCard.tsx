@@ -80,43 +80,43 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
 
   const badge =
     state !== "done" ? null
-    : saveStatus === "saving" ? { t: "💾 salvando…", c: "#FBBF24" }
-    : saveStatus === "error" ? { t: "⚠ não salvou", c: "#F87171" }
+    : saveStatus === "saving" ? { t: "salvando…", c: "#D97706" }
+    : saveStatus === "error" ? { t: "⚠ não salvou", c: "#DC2626" }
     : saveStatus === "saved" ? { t: "✓ salvo", c: C.green }
-    : dirty ? { t: "✏ editado", c: "#A78BFA" }
-    : { t: "✦ IA", c: C.blue };
+    : dirty ? { t: "✏ editado", c: "#0F766E" }
+    : { t: "IA", c: C.blue };
 
   return (
     <div style={{ background: C.panel, border: `1px solid ${color}30`, borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px",
         borderBottom: `1px solid ${color}20`, background: C.panel2, gap: 8, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#94A3B8", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em" }}>{part.label}</span>
+          <span style={{ color: "#0F172A", fontSize: 14.5, fontWeight: 600 }}>{part.label}</span>
           {badge && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, color: badge.c, border: `1px solid ${badge.c}40` }}>{badge.t}</span>}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button type="button" onClick={async () => showFlash((await copyText(filledPrompt)) ? "prompt" : "erro")}
             style={btn(C.border, C.muted, { fontSize: 11, fontWeight: 600 })}>{flash === "prompt" ? "✓ Copiado" : "Copiar prompt"}</button>
           {!aiEnabled && state !== "done" && (
-            <button type="button" onClick={startManual} style={btn(`linear-gradient(135deg,${color},${color}AA)`)}>📋 Colar resultado</button>
+            <button type="button" onClick={startManual} style={btn(color)}>Colar resultado</button>
           )}
           <button type="button" onClick={onGenerateClick} disabled={state === "loading" || !!blocked} title={blocked ?? ""}
-            style={btn(state === "loading" || blocked ? C.border : `linear-gradient(135deg,${color},${color}AA)`,
+            style={btn(state === "loading" || blocked ? C.border : color,
               state === "loading" || blocked ? C.muted : "#fff", { cursor: state === "loading" || blocked ? "not-allowed" : "pointer" })}>
-            {state === "loading" ? "⟳ Gerando…" : state === "done" ? "↺ Regenerar" : "✦ Gerar com IA"}
+            {state === "loading" ? "⟳ Gerando…" : state === "done" ? "↺ Regenerar" : "Gerar com IA"}
           </button>
         </div>
       </div>
 
       {blocked && state !== "loading" && (
-        <div style={{ padding: "10px 16px", background: "#1C1000", color: "#FCD34D", fontSize: 12, borderBottom: `1px solid ${color}20` }}>⚠ {blocked}</div>
+        <div style={{ padding: "10px 16px", background: "#FFFBEB", color: "#B45309", fontSize: 12, borderBottom: `1px solid ${color}20` }}>⚠ {blocked}</div>
       )}
 
       {confirmRegen && (
-        <div style={{ padding: "12px 16px", background: "#1C1000", borderBottom: `1px solid ${color}20`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ color: "#FCD34D", fontSize: 12, flex: 1 }}>⚠ Você editou este texto. Regenerar substitui suas edições.</span>
+        <div style={{ padding: "12px 16px", background: "#FFFBEB", borderBottom: `1px solid ${color}20`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ color: "#B45309", fontSize: 12, flex: 1 }}>⚠ Você editou este texto. Regenerar substitui suas edições.</span>
           <button type="button" onClick={doGenerate} style={btn("#B45309")}>Sim, regenerar</button>
-          <button type="button" onClick={() => setConfirmRegen(false)} style={btn(C.border, "#94A3B8")}>Cancelar</button>
+          <button type="button" onClick={() => setConfirmRegen(false)} style={btn(C.border, "#64748B")}>Cancelar</button>
         </div>
       )}
 
@@ -133,7 +133,7 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
       )}
 
       {error && state !== "loading" && (
-        <div style={{ padding: "12px 20px", color: C.red, fontSize: 13, background: "#1C0A0A" }}>⚠ {error}</div>
+        <div style={{ padding: "12px 20px", color: C.red, fontSize: 13, background: "#FEF2F2" }}>⚠ {error}</div>
       )}
 
       {state === "done" && (
@@ -143,17 +143,17 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
             <div style={{ display: "flex", gap: 6 }}>
               <button type="button" onClick={() => setEditing((e) => !e)}
                 style={btn(editing ? `${color}22` : C.border, editing ? color : C.muted, { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>
-                {editing ? "👁 Ver" : "✏️ Editar"}
+                {editing ? "Ver" : "✏Editar"}
               </button>
               {dirty && (
-                <button type="button" onClick={restore} style={btn("#1C0A2A", "#A78BFA", { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>↩ Restaurar IA</button>
+                <button type="button" onClick={restore} style={btn("#F5F3FF", "#0F766E", { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>↩ Restaurar IA</button>
               )}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button type="button" onClick={() => downloadTxt(`${slugify(`${formData.clientName ?? ""}-${part.label}`)}.txt`, text)}
-                style={btn("#0D2137", C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>⬇ .txt</button>
+                style={btn("#F0FDFA", C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>⬇ .txt</button>
               <button type="button" onClick={async () => showFlash((await copyText(text)) ? "text" : "erro")}
-                style={btn(flash === "text" ? "#065F46" : "#0D2137", flash === "text" ? "#6EE7B7" : C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 12px" })}>
+                style={btn(flash === "text" ? "#DCFCE7" : "#F0FDFA", flash === "text" ? "#047857" : C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 12px" })}>
                 {flash === "text" ? "✓ Copiado!" : flash === "erro" ? "Falhou" : "Copiar"}
               </button>
             </div>

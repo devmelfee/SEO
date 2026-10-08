@@ -46,7 +46,8 @@ export function defaultServices(niche: string): string[] {
 }
 
 function themeColor(seed: string): string {
-  const palette = ["#7C3AED", "#0D9488", "#DB2777", "#2563EB", "#EA580C", "#059669", "#9333EA", "#0891B2"];
+  // Tons sóbrios, de comércio de bairro: verde-floresta, tijolo, azul-marinho, ocre, petróleo.
+  const palette = ["#1F5E4A", "#8A3B25", "#1E4E79", "#7A5A12", "#245B66", "#5B3A5E"];
   let h = 0; for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return palette[h % palette.length];
 }
@@ -77,54 +78,54 @@ export function buildSiteHtml(d: SiteData): string {
 <meta name="description" content="${esc(`${d.name}: ${d.niche} em ${d.city}.${d.address ? ` ${d.address}.` : ""}`)}">
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
 <style>
-:root{--c:${color};--ink:#0f172a;--muted:#475569;--bg:#ffffff;--soft:#f8fafc;--line:#e2e8f0}
+:root{--c:${color};--ink:#1c1917;--muted:#57534e;--bg:#ffffff;--cream:#faf7f2;--line:#e7e5e4}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
-a{color:inherit}.wrap{max-width:1040px;margin:0 auto;padding:0 20px}
-.ribbon{background:#0f172a;color:#fff;text-align:center;font-size:12px;padding:6px 12px}
-header{padding:14px 0;border-bottom:1px solid var(--line)}header .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.brand{font-weight:800;font-size:18px}.hero{background:linear-gradient(135deg,var(--c),#0f172a);color:#fff;padding:72px 0 64px}
-.hero h1{font-size:clamp(28px,5vw,46px);line-height:1.15;margin:0 0 12px}.hero p{font-size:18px;opacity:.92;margin:0 0 26px;max-width:620px}
-.btns{display:flex;gap:12px;flex-wrap:wrap}.btn{display:inline-block;padding:14px 22px;border-radius:12px;font-weight:700;text-decoration:none;font-size:15px}
-.btn-wa{background:#22c55e;color:#06230f}.btn-ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35)}
-.btn-c{background:var(--c);color:#fff}
-.stars{display:inline-flex;gap:8px;align-items:center;background:rgba(255,255,255,.14);padding:8px 14px;border-radius:999px;margin-bottom:18px;font-size:14px}
-section{padding:56px 0}section.soft{background:var(--soft)}h2{font-size:26px;margin:0 0 20px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px}.card b{display:block;font-size:16px;margin-bottom:4px}
-.card span{color:var(--muted);font-size:14px}.info{display:grid;grid-template-columns:1fr 1fr;gap:24px}
-.hours{list-style:none;padding:0;margin:0}.hours li{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0;font-size:14px}
-.map{width:100%;height:300px;border:0;border-radius:14px}
-.cta{background:var(--c);color:#fff;text-align:center}.cta h2{color:#fff}.cta p{opacity:.9;margin:0 0 22px}
-footer{padding:26px 0;color:var(--muted);font-size:13px;text-align:center}
-.float{position:fixed;right:18px;bottom:18px;background:#22c55e;color:#06230f;font-weight:800;padding:14px 18px;border-radius:999px;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.2)}
-@media(max-width:720px){.info{grid-template-columns:1fr}.hero{padding:52px 0}}
+a{color:inherit}.wrap{max-width:980px;margin:0 auto;padding:0 20px}
+h1,h2{font-family:Georgia,"Times New Roman",serif;font-weight:700;letter-spacing:-.01em}
+.ribbon{background:#f5f5f4;color:#78716c;text-align:center;font-size:12px;padding:6px 12px}
+header{padding:16px 0;border-bottom:1px solid var(--line)}header .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{font-family:Georgia,serif;font-weight:700;font-size:19px}.brand small{display:block;font-family:system-ui,sans-serif;font-weight:400;font-size:12.5px;color:var(--muted)}
+.tel{font-weight:600;text-decoration:none;color:var(--c);white-space:nowrap}
+.hero{background:var(--cream);padding:56px 0 48px;border-bottom:1px solid var(--line)}
+.hero h1{font-size:clamp(30px,6vw,52px);line-height:1.1;margin:0 0 10px;color:var(--ink)}
+.lead{font-size:18px;color:var(--muted);margin:0 0 8px;max-width:600px}.rating{font-size:15px;color:var(--ink);margin:0 0 26px}.rating b{color:#b45309}
+.btns{display:flex;gap:10px;flex-wrap:wrap}.btn{display:inline-flex;align-items:center;justify-content:center;padding:13px 22px;border-radius:10px;font-weight:600;text-decoration:none;font-size:15.5px}
+.btn-main{background:var(--c);color:#fff}.btn-line{background:#fff;color:var(--ink);border:1px solid #d6d3d1}
+section{padding:48px 0}h2{font-size:26px;margin:0 0 18px}
+.list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}.list li{padding:14px 0;border-bottom:1px solid var(--line);font-size:17px;display:flex;gap:12px;align-items:baseline}
+.list li:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c);flex-shrink:0;transform:translateY(-2px)}
+.info{display:grid;grid-template-columns:1.2fr 1fr;gap:32px}.addr{margin:0 0 12px;font-size:16px}
+.hours{list-style:none;padding:0;margin:0}.hours li{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:9px 0;font-size:15px}
+.hours li span:first-child{display:inline-block}.hours li span:first-child::first-letter{text-transform:uppercase}
+.map{width:100%;height:260px;border:1px solid var(--line);border-radius:12px;margin-top:4px}
+footer{padding:28px 0;color:#78716c;font-size:13px;text-align:center;border-top:1px solid var(--line)}
+.bar{display:none}
+@media(max-width:720px){.info{grid-template-columns:1fr}.hero{padding:40px 0 36px}.tel{display:none}
+ body{padding-bottom:76px}.bar{display:grid;grid-template-columns:${wa && telDigits ? "1fr 1fr" : "1fr"};gap:8px;position:fixed;left:0;right:0;bottom:0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line)}
+ .bar .btn{padding:13px 10px}}
 </style>
 </head>
 <body>
 <div class="ribbon">Prévia de site criada para apresentação${d.agency ? ` por ${esc(d.agency)}` : ""} · não é o site oficial da empresa</div>
-<header><div class="wrap"><span class="brand">${esc(d.name)}</span>${wa ? `<a class="btn btn-c" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">WhatsApp</a>` : telDigits ? `<a class="btn btn-c" href="tel:${telDigits}">Ligar</a>` : ""}</div></header>
+<header><div class="wrap"><span class="brand">${esc(d.name)}<small>${esc(d.niche)} · ${esc(d.city)}</small></span>${telDigits ? `<a class="tel" href="tel:${telDigits}">${esc(d.phone)}</a>` : ""}</div></header>
 <div class="hero"><div class="wrap">
-${d.rating && d.reviews ? `<div class="stars">★ ${esc(d.rating.toFixed(1).replace(".", ","))} no Google · ${esc(d.reviews)} avaliações</div>` : ""}
 <h1>${esc(d.name)}</h1>
-<p>${esc(tagline)}. ${d.address ? "Venha nos visitar ou fale com a gente agora." : "Fale com a gente agora."}</p>
+<p class="lead">${esc(tagline)}${d.address ? ` — ${esc(d.address)}` : ""}.</p>
+${d.rating && d.reviews ? `<p class="rating"><b>★ ${esc(d.rating.toFixed(1).replace(".", ","))}</b> no Google · ${esc(d.reviews)} avaliações</p>` : `<p class="rating"></p>`}
 <div class="btns">
-${wa ? `<a class="btn btn-wa" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">Chamar no WhatsApp</a>` : ""}
-${telDigits ? `<a class="btn btn-ghost" href="tel:${telDigits}">Ligar ${esc(d.phone)}</a>` : ""}
-<a class="btn btn-ghost" href="${esc(mapsLink)}" target="_blank" rel="noopener">Como chegar</a>
+${wa ? `<a class="btn btn-main" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">Falar no WhatsApp</a>` : telDigits ? `<a class="btn btn-main" href="tel:${telDigits}">Ligar agora</a>` : ""}
+<a class="btn btn-line" href="${esc(mapsLink)}" target="_blank" rel="noopener">Como chegar</a>
 </div></div></div>
-<section><div class="wrap"><h2>O que oferecemos</h2><div class="grid">
-${services.map((s) => `<div class="card"><b>${esc(s)}</b><span>Em ${esc(d.city)} e região</span></div>`).join("\n")}
-</div></div></section>
-<section class="soft"><div class="wrap info">
-<div><h2>Onde estamos</h2>${d.address ? `<p>${esc(d.address)}</p>` : `<p>${esc(d.city)}</p>`}
+<section><div class="wrap"><h2>Serviços</h2><ul class="list">
+${services.map((x) => `<li>${esc(x)}</li>`).join("\n")}
+</ul></div></section>
+<section style="background:var(--cream);border-top:1px solid var(--line)"><div class="wrap info">
+<div><h2>Onde estamos</h2><p class="addr">${esc(d.address || d.city)}</p>
 <iframe class="map" loading="lazy" title="Mapa" src="https://www.google.com/maps?q=${mapsQuery}&output=embed"></iframe></div>
 <div><h2>Horário</h2>${d.hours?.length ? `<ul class="hours">${d.hours.map((h) => { const [day, ...rest] = h.split(":"); return `<li><span>${esc(day)}</span><span>${esc(rest.join(":").trim())}</span></li>`; }).join("")}</ul>` : `<p>Consulte pelo telefone ou WhatsApp.</p>`}</div>
 </div></section>
-<section class="cta"><div class="wrap"><h2>Pronto para falar com a ${esc(d.name)}?</h2><p>Atendimento rápido em ${esc(d.city)}.</p>
-${wa ? `<a class="btn btn-wa" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">Chamar no WhatsApp</a>` : telDigits ? `<a class="btn btn-wa" href="tel:${telDigits}">Ligar agora</a>` : ""}
-</div></section>
-<footer>© ${new Date().getFullYear()} ${esc(d.name)} · ${esc(d.city)}</footer>
-${wa ? `<a class="float" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener" aria-label="WhatsApp">WhatsApp</a>` : ""}
+<footer>${esc(d.name)} · ${esc(d.city)}${d.phone ? ` · ${esc(d.phone)}` : ""}</footer>
+${wa || telDigits ? `<nav class="bar" aria-label="Contato">${telDigits ? `<a class="btn btn-line" href="tel:${telDigits}">Ligar</a>` : ""}${wa ? `<a class="btn btn-main" href="https://wa.me/${wa}?text=${waText}" target="_blank" rel="noopener">WhatsApp</a>` : ""}</nav>` : ""}
 </body>
 </html>`;
 }
