@@ -7,7 +7,7 @@ export type OutreachLead = {
   rating: number | null; reviews_count: number; rank_in_search: number;
   issues: { code: string }[];
 };
-export type OutreachCtx = { sender?: string; agency?: string; siteUrl?: string; leaderReviews?: number };
+export type OutreachCtx = { sender?: string; agency?: string; siteUrl?: string; leaderReviews?: number; contactName?: string };
 
 /** Dias até o próximo lembrete depois de cada passo (1º contato → +2 dias → +3 dias → fim). */
 export const FOLLOWUP_DAYS: Record<number, number | null> = { 1: 2, 2: 3, 3: null };
@@ -49,7 +49,9 @@ export function mainHook(l: OutreachLead, ctx: OutreachCtx = {}): string {
 
 export function buildMessage(l: OutreachLead, step: number, ctx: OutreachCtx = {}): string {
   const me = ctx.sender ? `Sou ${ctx.sender}${ctx.agency ? `, da ${ctx.agency}` : ""}` : ctx.agency ? `Sou da ${ctx.agency}` : "Trabalho com Google Maps para negócios locais";
-  const greet = pick(l.place_id + step, ["Olá! Tudo bem?", "Oi, tudo bem?", "Olá, boa tarde! Tudo certo?"]);
+  const greet = ctx.contactName
+    ? pick(l.place_id + step, [`Olá, ${ctx.contactName}! Tudo bem?`, `Oi, ${ctx.contactName}, tudo bem?`])
+    : pick(l.place_id + step, ["Olá! Tudo bem?", "Oi, tudo bem?", "Olá, boa tarde! Tudo certo?"]);
   const site = ctx.siteUrl ? `\n\nFiz até uma prévia de como poderia ficar o site de vocês: ${ctx.siteUrl}` : "";
   if (step <= 1) {
     const ask = pick(l.place_id, [

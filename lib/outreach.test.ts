@@ -18,6 +18,10 @@ test("1ª mensagem personalizada, com prévia quando houver site", () => {
   assert.match(m, /https:\/\/app\/s\/pet/);
 });
 
+test("com decisor identificado, cumprimenta pelo nome", () => {
+  assert.match(buildMessage(lead, 1, { contactName: "Maria" }), /^(Olá, Maria!|Oi, Maria,)/);
+});
+
 test("última mensagem oferece parar o contato", () => {
   assert.match(buildMessage(lead, 3), /responder "parar"/);
 });

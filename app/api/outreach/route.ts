@@ -13,8 +13,9 @@ export async function GET(req: Request) {
   try {
     const project = new URL(req.url).searchParams.get("project");
     const now = new Date();
-    let seq = db().from("prospects").select("*").eq("status", "abordado").order("next_followup_at", { ascending: true, nullsFirst: false }).limit(400);
-    let fresh = db().from("prospects").select("*").eq("status", "novo").neq("phone", "").order("score", { ascending: false }).limit(300);
+    // Contato marcado como inválido ou sem WhatsApp não volta para a fila.
+    let seq = db().from("prospects").select("*").eq("status", "abordado").not("contact_status", "in", "(invalido,sem_whatsapp)").order("next_followup_at", { ascending: true, nullsFirst: false }).limit(400);
+    let fresh = db().from("prospects").select("*").eq("status", "novo").neq("phone", "").not("contact_status", "in", "(invalido,sem_whatsapp)").order("score", { ascending: false }).limit(300);
     if (project) { seq = seq.eq("project_id", project); fresh = fresh.eq("project_id", project); }
     const seqRows = check(await seq) as any[];
     const freshRows = (check(await fresh) as any[]).filter((p) => whatsappNumber(p.phone) && !(p.contact_step > 0)).slice(0, 100);

@@ -45,3 +45,12 @@ test("CSV: WhatsApp só com dígitos (sem + que o Excel trata como fórmula)", (
   const csv = leadsToCsv([toPublicLead(row)]);
   assert.match(csv, /;5511988887777;/);
 });
+
+test("API mostra validação do contato sem expor telefone pessoal do decisor", () => {
+  const l = toPublicLead({ ...row, contact_status: "confirmado", cnpj: "11222333000181",
+    company_data: { legal_name: "PET FELIZ LTDA", status: "ATIVA", opened_at: "2015-03-02", mei: false },
+    decision_maker: { name: "Maria", role: "Sócia", phone: "11999990000", source: "receita" } });
+  assert.equal(l.contact_status, "confirmado");
+  assert.equal(l.company?.status, "ATIVA");
+  assert.deepEqual(l.decision_maker, { name: "Maria", role: "Sócia", source: "receita" });
+});

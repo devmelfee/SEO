@@ -10,6 +10,7 @@ import { SiteBuilder } from "./SiteBuilder";
 import { OutreachComposer, type Sender } from "./Outreach";
 import { isDue } from "@/lib/outreach";
 import { UsageBar, type MyUsage } from "./Usage";
+import { ContactBadge, ContactCheck, type ContactFields } from "./Contact";
 import { C, btn, input, label, primary } from "./styles";
 
 export type Prospect = {
@@ -18,7 +19,7 @@ export type Prospect = {
   photos_count: number; rank_in_search: number; score: number; issues: Issue[]; status?: ProspectStatus; notes?: string;
   client_id?: string | null; project_id?: string | null;
   contact_step?: number | null; last_contact_at?: string | null; next_followup_at?: string | null;
-};
+} & ContactFields;
 
 type Mode = "cidade" | "regiao" | "projetos";
 const UI_KEY = "seo_radar_ui_v1";
@@ -70,6 +71,8 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
   const [activeQuery, setActiveQuery] = useState(ui0.activeQuery ?? "");
   const [projectFilter, setProjectFilter] = useState(ui0.projectFilter ?? "");
   const [projects, setProjects] = useState<Project[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [checkFor, setCheckFor] = useState<string | null>(null);
   const [onlyNoSite, setOnlyNoSite] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"" | ProspectStatus>("");
   const [open, setOpen] = useState<string | null>(null);
@@ -83,6 +86,13 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
   }, [mode, vertical, city, max, citiesText, activeQuery, projectFilter, region?.batchId]);
 
   const loadProjects = () => api<Project[]>("/api/projects").then(setProjects).catch(() => {});
+  const loadFavorites = () => api<{ query: string }[]>("/api/favorites").then((r) => setFavorites(r.map((f) => f.query))).catch(() => {});
+  const toggleFavorite = async (q: string) => {
+    const on = favorites.includes(q);
+    setFavorites((f) => (on ? f.filter((x) => x !== q) : [q, ...f]));
+    try { await api(on ? `/api/favorites?query=${encodeURIComponent(q)}` : "/api/favorites", on ? { method: "DELETE" } : { body: { query: q } }); }
+    catch (e) { setErr((e as Error).message); loadFavorites(); }
+  };
   const loadBatches = () => api<{ batches: typeof batches }>("/api/radar/region").then((r) => setBatches(r.batches)).catch(() => {});
   const openBatch = async (id: string) => {
     if (!id) { setRegion(null); return; }
@@ -100,7 +110,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
   };
   useEffect(() => {
     if (!supabaseOn) return;
-    load(); loadProjects(); loadBatches();
+    load(); loadProjects(); loadBatches(); loadFavorites();
     if (ui0.batchId) openBatch(ui0.batchId);
   }, [supabaseOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -255,12 +265,32 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
             <strong style={{ fontSize: 15 }}>{visible.length} {visible.length === 1 ? "empresa" : "empresas"}</strong>
             <span style={{ fontSize: 12.5, color: C.muted }}>{hot} com nota alta · {noSite} sem site</span>
           </div>
+          {favorites.length > 0 && (
+            <div className="chips" style={{ marginBottom: 8 }} aria-label="Buscas favoritas">
+              {favorites.map((q) => {
+                const on = !projectFilter && activeQuery === q;
+                return (
+                  <button key={q} type="button" aria-pressed={on} onClick={() => { setProjectFilter(""); setActiveQuery(q); load(q, ""); }}
+                    style={{ ...chip, background: on ? "#FFFBEB" : "#fff", borderColor: on ? "#FCD34D" : C.border, color: C.text }}>
+                    <span style={{ color: "#D97706" }}>★</span> {q}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <div className="chips" style={{ marginBottom: 12 }}>
             {queries.length > 0 && (
               <select aria-label="Busca" value={projectFilter ? "" : activeQuery} disabled={!!projectFilter} onChange={(e) => { setActiveQuery(e.target.value); load(e.target.value, ""); }} style={chip}>
                 <option value="">Todas as buscas</option>
-                {queries.map((q) => <option key={q} value={q}>{q}</option>)}
+                {[...queries].sort((a, b) => Number(favorites.includes(b)) - Number(favorites.includes(a))).map((q) => <option key={q} value={q}>{favorites.includes(q) ? "★ " : ""}{q}</option>)}
               </select>
+            )}
+            {activeQuery && !projectFilter && (
+              <button type="button" aria-pressed={favorites.includes(activeQuery)} onClick={() => toggleFavorite(activeQuery)}
+                title={favorites.includes(activeQuery) ? "Tirar dos favoritos" : "Favoritar esta busca"}
+                style={{ ...chip, color: favorites.includes(activeQuery) ? "#D97706" : C.muted }}>
+                {favorites.includes(activeQuery) ? "★ Favorita" : "☆ Favoritar"}
+              </button>
             )}
             {projects.length > 0 && (
               <select aria-label="Projeto" value={projectFilter} onChange={(e) => { setProjectFilter(e.target.value); load(activeQuery, e.target.value); }} style={chip}>
@@ -295,6 +325,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
                 <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   ★ {p.rating ?? "–"} ({p.reviews_count}){noOwnSite ? ` · ${p.website ? "só rede social" : "sem site"}` : ""} · <span style={{ color: due ? "#DC2626" : STATUS_COLOR[st] }}>{due ? "lembrete hoje" : STATUS_LABEL[st]}</span>
+                  {(p.contact_status && p.contact_status !== "nao_verificado") || p.decision_maker ? <> · <ContactBadge p={p} /></> : null}
                 </div>
               </div>
               <span aria-hidden style={{ color: C.faint, fontSize: 14 }}>{isOpen ? "▴" : "▾"}</span>
@@ -322,13 +353,22 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
                       {siteFor === p.id ? "Fechar site" : "Site de prévia"}
                     </button>
                   )}
-                  {p.maps_url && <a href={p.maps_url} target="_blank" rel="noreferrer" style={{ ...btn("#fff", C.body, { border: `1px solid ${C.border}` }), textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Ver no Maps</a>}
+                  {p.id && (
+                    <button type="button" onClick={() => setCheckFor(checkFor === p.id ? null : p.id!)} style={btn("#fff", C.body, { border: `1px solid ${C.border}` })}>
+                      {checkFor === p.id ? "Fechar validação" : "Validar contato"}
+                    </button>
+                  )}
                 </div>
                 {waFor === p.id && p.id && (
                   <div className="dash-card" style={{ marginBottom: 10 }}>
                     <OutreachComposer lead={p} sender={sender}
                       leaderReviews={Math.max(0, ...rows.filter((r) => r.query === p.query && r.place_id !== p.place_id).map((r) => r.reviews_count))}
                       onUpdated={(row) => { setRows((rs) => rs.map((r) => (r.place_id === p.place_id ? { ...r, ...row } : r))); setTimeout(loadProjects, 300); }} />
+                  </div>
+                )}
+                {checkFor === p.id && p.id && (
+                  <div className="dash-card" style={{ marginBottom: 10 }}>
+                    <ContactCheck lead={p} onUpdated={(row) => setRows((rs) => rs.map((r) => (r.place_id === p.place_id ? { ...r, ...row } : r)))} />
                   </div>
                 )}
                 {siteFor === p.id && p.id && (
@@ -341,6 +381,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
                   <summary style={{ cursor: "pointer", fontSize: 13, color: C.muted, padding: "4px 0" }}>Mais detalhes · status, projeto e anotações</summary>
                   <div style={{ fontSize: 13, color: C.muted, margin: "8px 0" }}>
                     {p.address || "sem endereço"} · {p.phone || "sem telefone"} · #{p.rank_in_search} na busca
+                    {p.maps_url && <> · <a href={p.maps_url} target="_blank" rel="noreferrer">ver no Maps</a></>}
                     {p.website && <> · <a href={p.website} target="_blank" rel="noreferrer">site atual</a></>}
                   </div>
                   <div className="lead-actions">

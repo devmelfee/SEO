@@ -62,6 +62,11 @@ export function toPublicLead(p: Row, siteUrl: string | null = null) {
     opening_hours: p.hours ?? [],
     location: p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null,
     site_preview_url: siteUrl,
+    contact_status: (p.contact_status as string) ?? "nao_verificado",
+    contact_checked_at: p.contact_checked_at ?? null,
+    cnpj: (p.cnpj as string) || null,
+    company: p.company_data ? { legal_name: p.company_data.legal_name, status: p.company_data.status, opened_at: p.company_data.opened_at, mei: !!p.company_data.mei } : null,
+    decision_maker: p.decision_maker ? { name: p.decision_maker.name, role: p.decision_maker.role || null, source: p.decision_maker.source } : null,
     created_at: p.created_at ?? null,
     updated_at: p.updated_at ?? null,
   };

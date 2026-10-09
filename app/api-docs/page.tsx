@@ -11,6 +11,8 @@ const FIELDS: [string, string][] = [
   ["rating / reviews_count", "Nota e número de avaliações no Google"], ["opportunity_score", "Nota de oportunidade (0–100): quanto maior, mais fácil vender"],
   ["issues[]", "Problemas encontrados: code, label, detail"], ["status", "novo, abordado, respondeu, proposta, fechado, descartado"],
   ["contact_step / next_followup_at", "Etapa da abordagem no WhatsApp e próximo lembrete"], ["site_preview_url", "Link do site de prévia, se foi criado"],
+  ["contact_status", "nao_verificado, confirmado, invalido ou sem_whatsapp"], ["cnpj / company", "CNPJ e situação na Receita (razão social, ATIVA/BAIXADA), se consultado"],
+  ["decision_maker", "Tomador de decisão identificado: nome, cargo e origem (receita, conversa, manual)"],
   ["opening_hours / location", "Horários e coordenadas"], ["updated_at", "Última mudança (use para sincronizar)"],
 ];
 

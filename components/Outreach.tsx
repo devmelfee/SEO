@@ -4,6 +4,8 @@ import { api, copyText } from "@/lib/api";
 import { buildMessage, cooldownMs, isDue, MAX_STEP, stageOf, stepDates, waLink, type OutreachCtx } from "@/lib/outreach";
 import { C, btn, input, primary } from "./styles";
 import type { Prospect } from "./Radar";
+import { firstName } from "@/lib/contact";
+import { whatsappNumber } from "@/lib/site";
 
 export type Sender = { name?: string; consultant?: string };
 type Event = { step: number; channel: string; kind: string; message: string; created_by: string; created_at: string };
@@ -27,7 +29,10 @@ export function OutreachComposer({ lead, sender, leaderReviews, onUpdated, onAct
   const [msg, setMsg] = useState("");
   const done = (lead.contact_step ?? 0) >= MAX_STEP;
 
-  const ctx: OutreachCtx = { sender: sender.consultant, agency: sender.name, siteUrl, leaderReviews };
+  // Decisor confirmado: cumprimenta pelo nome e, se houver celular direto, manda para ele.
+  const dm = lead.decision_maker;
+  const ctx: OutreachCtx = { sender: sender.consultant, agency: sender.name, siteUrl, leaderReviews, contactName: firstName(dm?.name) || undefined };
+  const toPhone = dm?.phone && whatsappNumber(dm.phone) ? dm.phone : lead.phone;
   useEffect(() => {
     if (!lead.id) return;
     api<{ site: { slug: string } | null }>(`/api/sites?prospectId=${lead.id}`)
@@ -37,7 +42,7 @@ export function OutreachComposer({ lead, sender, leaderReviews, onUpdated, onAct
   // Regera o texto quando muda o passo ou chega o link do site (o usuário pode editar depois).
   useEffect(() => { setText(buildMessage(lead, step, ctx)); }, [step, siteUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const link = waLink(lead.phone, text);
+  const link = waLink(toPhone, text);
   const record = async (kind: "enviado" | "respondeu" | "sem_interesse", channel = "whatsapp") => {
     if (!lead.id) return;
     try {
@@ -79,12 +84,18 @@ export function OutreachComposer({ lead, sender, leaderReviews, onUpdated, onAct
           {lead.phone && <a href={`tel:${lead.phone.replace(/\D/g, "")}`} onClick={() => record("enviado", "ligacao")} style={{ ...btn(primary), textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Ligar e registrar</a>}
         </div>
       )}
+      {dm?.name && <p style={{ fontSize: 12.5, color: C.muted, margin: "6px 0 0" }}>Para: {dm.name}{dm.role ? ` (${dm.role})` : ""}{toPhone !== lead.phone ? " · celular direto" : ""}</p>}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
         <button type="button" onClick={() => record("respondeu")} style={btn("#fff", C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Respondeu</button>
         <button type="button" onClick={() => confirm("Marcar como sem interesse? O lead sai da fila e não recebe mais lembretes.") && record("sem_interesse")}
           style={btn("#fff", C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Sem interesse</button>
         <button type="button" onClick={async () => setMsg((await copyText(text)) ? "✓ Mensagem copiada." : "⚠ Não deu para copiar.")} style={btn("#fff", C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Copiar</button>
       </div>
+      <button type="button" onClick={async () => {
+        if (!lead.id || !confirm("O WhatsApp disse que este número não tem conta? O lead sai da fila.")) return;
+        try { const row = await api<Prospect>(`/api/prospects/${lead.id}`, { method: "PATCH", body: { contact_status: "sem_whatsapp" } }); onUpdated(row); onAction?.("sem_interesse"); setMsg("✓ Marcado: sem WhatsApp."); }
+        catch (e) { setMsg(`⚠ ${(e as Error).message}`); }
+      }} style={btn("transparent", C.muted, { marginTop: 4, fontSize: 12.5, padding: "4px 0", minHeight: 28 })}>Número não tem WhatsApp</button>
       {msg && <p role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? "#047857" : C.red, margin: "8px 0 0" }}>{msg}</p>}
 
       {events.length > 0 && (

@@ -261,3 +261,21 @@ create table if not exists public.api_keys (
 );
 alter table public.api_keys enable row level security;
 create index if not exists prospects_updated_at on public.prospects (updated_at desc);
+
+-- Buscas favoritas e validação de contato (CNPJ na Receita, decisor, links verificados).
+create table if not exists public.favorite_searches (
+  query text primary key,
+  created_by text not null default '',
+  created_at timestamptz not null default now()
+);
+alter table public.favorite_searches enable row level security;
+alter table public.prospects add column if not exists cnpj text;
+alter table public.prospects add column if not exists company_data jsonb;
+alter table public.prospects add column if not exists decision_maker jsonb;
+alter table public.prospects add column if not exists contact_status text not null default 'nao_verificado';
+alter table public.prospects add column if not exists link_check jsonb;
+alter table public.prospects add column if not exists contact_checked_at timestamptz;
+do $$ begin
+  alter table public.prospects add constraint prospects_contact_status_check
+    check (contact_status in ('nao_verificado','confirmado','invalido','sem_whatsapp'));
+exception when duplicate_object then null; end $$;
