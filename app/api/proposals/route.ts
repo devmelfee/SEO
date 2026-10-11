@@ -48,6 +48,7 @@ const Data = z.object({
   comparison: z.array(z.object({ name: z.string().max(200), reviews: z.number().int().min(0), rating: z.number().nullable(), site: z.boolean(), you: z.boolean().optional() })).max(6),
   deliverables: z.array(z.string().max(300)).max(15),
   trialPrice: z.string().max(60), monthlyPrice: z.string().max(60), terms: z.string().max(600),
+  offerName: z.string().max(80).optional(), guarantee: z.string().max(600).optional(),
   siteUrl: z.string().max(500), validDays: z.number().int().min(1).max(90), date: z.string().max(40),
 }) satisfies z.ZodType<ProposalData>;
 const Body = z.object({ clientId: z.string().uuid(), data: Data });

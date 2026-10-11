@@ -150,6 +150,10 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
         <label style={{ ...label, marginTop: 16, display: "block" }} htmlFor="deliv">O que vamos fazer (um por linha)</label>
         <textarea id="deliv" rows={6} value={d.deliverables.join("\n")} onChange={(e) => set("deliverables", e.target.value.split("\n"))}
           style={{ ...input, fontSize: 13, lineHeight: 1.55, resize: "vertical" }} />
+        <label style={{ ...label, marginTop: 12, display: "block" }} htmlFor="offer-name">Nome da oferta</label>
+        <input id="offer-name" value={d.offerName ?? ""} placeholder="Ex: Plano Destaque no Google" onChange={(e) => set("offerName", e.target.value)} style={{ ...input, fontSize: 13 }} />
+        <label style={{ ...label, marginTop: 12, display: "block" }} htmlFor="guarantee">Garantia (sobre a entrega, nunca sobre posição no Google)</label>
+        <textarea id="guarantee" rows={2} value={d.guarantee ?? ""} onChange={(e) => set("guarantee", e.target.value)} style={{ ...input, fontSize: 13, resize: "vertical" }} />
         <label style={{ ...label, marginTop: 12, display: "block" }} htmlFor="terms">Condições</label>
         <input id="terms" value={d.terms} onChange={(e) => set("terms", e.target.value)} style={{ ...input, fontSize: 13 }} />
         <p style={{ fontSize: 12, color: C.muted, margin: "8px 0 0" }}>{d.siteUrl ? `Link do site na proposta: ${d.siteUrl}` : "Sem site de prévia na proposta."}</p>

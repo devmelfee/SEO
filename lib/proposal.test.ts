@@ -48,3 +48,13 @@ test("mensagens e links de WhatsApp", () => {
   assert.equal(clientWaLink("(11) 4444-0000", "oi"), null);
   assert.equal(acceptLink({ ...p, agencyWhatsapp: "" }), null);
 });
+
+test("oferta completa: nome e garantia na página; proposta antiga sem esses campos continua abrindo", () => {
+  const p = defaultProposal(base);
+  const html = buildProposalHtml(p);
+  assert.match(html, /Plano Destaque no Google: o que vamos fazer/);
+  assert.match(html, /Nossa garantia/);
+  const old = buildProposalHtml({ ...p, offerName: undefined, guarantee: undefined });
+  assert.match(old, /<h2>O que vamos fazer<\/h2>/);
+  assert.doesNotMatch(old, /Nossa garantia/);
+});

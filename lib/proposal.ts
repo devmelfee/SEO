@@ -12,10 +12,15 @@ export type ProposalData = {
   comparison: Rival[];
   deliverables: string[];
   trialPrice: string; monthlyPrice: string; terms: string;
+  /** Nome da oferta (ex.: "Plano Destaque no Google") e garantia sobre a ENTREGA. Opcionais: propostas antigas não têm. */
+  offerName?: string; guarantee?: string;
   siteUrl: string;
   validDays: number;
   date: string; // ISO
 };
+
+export const DEFAULT_OFFER_NAME = "Plano Destaque no Google";
+export const DEFAULT_GUARANTEE = "Em 30 dias seu perfil no Google estará completo, com o site no ar e as publicações começadas. Se não estiver, você não paga o teste.";
 
 export const DEFAULT_DELIVERABLES = [
   "Otimização completa do Perfil da Empresa no Google (categorias, serviços, horários, fotos)",
@@ -56,6 +61,7 @@ export function defaultProposal(s: Seed, now = new Date()): ProposalData {
     deliverables: [...DEFAULT_DELIVERABLES],
     trialPrice: s.trialPrice ?? "", monthlyPrice: s.monthlyPrice ?? "",
     terms: "Sem fidelidade: depois do teste, mensal, e você pode cancelar quando quiser.",
+    offerName: DEFAULT_OFFER_NAME, guarantee: DEFAULT_GUARANTEE,
     siteUrl: s.siteUrl ?? "", validDays: 7, date: now.toISOString(),
   };
 }
@@ -99,6 +105,7 @@ ul.del li:before{content:"✓";position:absolute;left:4px;color:#16a34a;font-wei
 .prices{display:flex;gap:12px;flex-wrap:wrap;margin:8px 0 12px}.price{flex:1 1 200px;border:2px solid #e2e8f0;border-radius:12px;padding:14px}
 .price span{display:block;color:#64748b;font-size:13px}.price strong{font-size:24px}
 .cta{display:block;width:100%;border:0;border-radius:12px;padding:16px;font-size:17px;font-weight:800;color:#fff;background:#16a34a;cursor:pointer;text-align:center;text-decoration:none}
+.guar{margin-top:14px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:12px;padding:12px 14px}.guar b{display:block;color:#166534}
 .ok{background:#dcfce7;color:#166534;border-radius:12px;padding:16px;font-weight:700;text-align:center}a{color:#2563eb}
 @media print{body{background:#fff}.card{box-shadow:none;padding:12px 0}.noprint{display:none}}
 </style></head><body><div class="wrap">
@@ -108,10 +115,11 @@ ul.del li:before{content:"✓";position:absolute;left:4px;color:#16a34a;font-wei
 <div class="card"><h2>O que encontramos</h2>${p.problems.map((x) => `<div class="prob"><b>${esc(x.title)}</b>${esc(x.detail)}</div>`).join("")}</div>
 ${rows ? `<div class="card"><h2>Vocês x quem aparece na frente</h2><table><thead><tr><th>Empresa</th><th>Avaliações</th><th>Nota</th><th>Site</th></tr></thead><tbody>${rows}</tbody></table>
 <p class="muted">Dados públicos do Google Maps na busca "${esc(p.niche.toLowerCase())} em ${esc(p.city)}".</p></div>` : ""}
-<div class="card"><h2>O que vamos fazer</h2><ul class="del">${p.deliverables.filter(Boolean).map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
+<div class="card"><h2>${p.offerName ? `${esc(p.offerName)}: o que vamos fazer` : "O que vamos fazer"}</h2><ul class="del">${p.deliverables.filter(Boolean).map((d) => `<li>${esc(d)}</li>`).join("")}</ul>
 ${site ? `<p style="margin-top:14px">👉 Prévia do site que preparamos para vocês: <a href="${esc(site)}" target="_blank" rel="noopener">${esc(site)}</a></p>` : ""}</div>
 <div class="card"><h2>Investimento</h2>${price ? `<div class="prices">${price}</div>` : `<p class="muted">Valores a combinar.</p>`}
-<p class="muted">${esc(p.terms)} Proposta válida até ${esc(fmtDate(p.date, p.validDays))}.</p></div>
+<p class="muted">${esc(p.terms)} Proposta válida até ${esc(fmtDate(p.date, p.validDays))}.</p>
+${p.guarantee ? `<div class="guar"><b>Nossa garantia</b>${esc(p.guarantee)}</div>` : ""}</div>
 <div class="card noprint">${opts.accepted
     ? `<div class="ok">✅ Proposta aceita${opts.acceptedAt ? ` em ${esc(fmtDate(opts.acceptedAt))}` : ""}. Em breve entramos em contato!</div>`
     : `<form method="post"><button class="cta" type="submit">✅ Aceitar proposta</button></form>
