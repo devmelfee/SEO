@@ -130,13 +130,15 @@ ${contact ? `<p style="text-align:center;margin:14px 0 0"><a href="https://wa.me
 
 /** Mensagem para mandar a proposta pelo WhatsApp do cliente. */
 export function proposalMessage(p: ProposalData, url: string): string {
-  return `Olá! Tudo bem? ${p.consultant ? `Aqui é ${p.consultant}${p.agency ? `, da ${p.agency}` : ""}. ` : ""}Preparei a proposta para a ${p.company} aparecer mais no Google em ${p.city}:\n${url}\n\nSe fizer sentido, é só clicar em "Aceitar proposta" no fim da página. Qualquer dúvida, me chama aqui.`;
+  const me = p.consultant ? `Aqui é ${p.consultant}${p.agency ? `, da ${p.agency}` : ""}. ` : "";
+  const days = p.validDays ? ` Os valores valem por ${p.validDays} dias.` : "";
+  return `Olá! ${me}Preparei a proposta da ${p.company}, com o que vi no Google em ${p.city} e o que vamos fazer:\n${url}\n\nPara aceitar, é o botão no fim da página.${days} Se tiver alguma dúvida, me pergunta aqui mesmo.`;
 }
 
 /** Resumo do diagnóstico para mandar antes da proposta (gera conversa). */
 export function diagnosisMessage(company: string, city: string, problems: Problem[], sender = ""): string {
-  const top = problems.slice(0, 3).map((x, i) => `${i + 1}. ${x.title} — ${x.detail}`).join("\n");
-  return `Olá! ${sender ? `Aqui é ${sender}. ` : ""}Fiz uma análise de como a ${company} aparece no Google em ${city}. Os 3 pontos que mais estão tirando clientes de vocês:\n\n${top}\n\nPosso te mostrar como resolver em 10 minutos?`;
+  const top = problems.slice(0, 3).map((x, i) => `${i + 1}. ${x.title}: ${x.detail}`).join("\n");
+  return `Olá! ${sender ? `Aqui é ${sender}. ` : ""}Olhei como a ${company} aparece no Google em ${city}. Estes são os pontos que mais tiram clientes de vocês hoje:\n\n${top}\n\nQual deles mais te incomoda? Te conto como resolveria.`;
 }
 
 /** Link do WhatsApp do cliente com a mensagem, ou null se não houver celular. */

@@ -150,14 +150,27 @@ export function buildSitePrompt(d: SiteData): { system: string; prompt: string }
 DADOS REAIS (use só estes; o que não estiver aqui, deixe de fora):
 ${facts}
 
-REQUISITOS
-- Um único arquivo HTML completo (<!doctype html>), CSS dentro de <style>, SEM JavaScript e sem bibliotecas externas.
-- Mobile first, bonito e profissional, fonte do sistema, cor principal combinando com o nicho, bom contraste.
-- <meta name="robots" content="noindex, nofollow"> e uma faixa no topo: "Prévia de site criada para apresentação${d.agency ? ` por ${d.agency}` : ""} · não é o site oficial da empresa".
-- Seções: topo com nome e botão principal; hero com frase forte usando "${d.niche} em ${d.city}" e botões (WhatsApp, Ligar, Como chegar); serviços; diferenciais; onde estamos (endereço + mapa em iframe https://www.google.com/maps?q=NOME+ENDERECO&output=embed); horário; chamada final; rodapé; botão flutuante de WhatsApp.
-- SEO local: <title> e meta description com nicho + cidade, títulos h1/h2 com palavras-chave naturais e JSON-LD LocalBusiness só com os dados reais.
-- PROIBIDO inventar depoimentos, nomes de clientes, prêmios, anos de experiência, preços ou números. Se citar a nota do Google, use exatamente a informada.
-- Textos em português do Brasil, curtos e diretos, focados em fazer a pessoa chamar no WhatsApp ou ligar.`,
+REQUISITOS TÉCNICOS
+- Um único arquivo HTML completo (<!doctype html>), CSS dentro de <style>, SEM JavaScript e sem bibliotecas, fontes ou imagens externas.
+- <meta name="robots" content="noindex, nofollow"> e uma faixa discreta no topo: "Prévia de site criada para apresentação${d.agency ? ` por ${d.agency}` : ""} · não é o site oficial da empresa".
+- SEO local: <title> e meta description com nicho + cidade, um único h1, h2 com palavras-chave naturais e JSON-LD LocalBusiness só com os dados reais.
+
+APARÊNCIA (deve parecer feito por um designer local, não por IA)
+- Fundo claro e quente (branco e um creme suave tipo #faf7f2), texto quase preto, UMA cor de destaque sóbria que combine com o nicho, usada só em botões e detalhes.
+- Títulos em serifa (Georgia), texto em fonte do sistema. Hierarquia por tamanho e espaço, não por enfeite.
+- PROIBIDO: gradientes, texto com gradiente, emojis, ícones de caractere (✓ ★ ✆), selos inventados, cards todos iguais em grade como estrutura da página, sombras pesadas, borda colorida grossa na lateral, frases genéricas como "qualidade e excelência", "o melhor de ${d.city}" ou "em ${d.city} e região".
+- Ícones, se usar, em SVG inline simples. Bom contraste (texto no mínimo 4.5:1).
+- Mobile first: no celular, barra fixa no rodapé com os botões WhatsApp e Ligar (os que existirem nos dados); no computador, os mesmos botões no topo e no hero. Sem botão flutuante redondo.
+
+CONTEÚDO
+- Topo: nome da empresa e botão principal.
+- Hero: o que a empresa é e onde fica, em uma frase concreta usando "${d.niche.toLowerCase()} em ${d.city}"; subtítulo curto; botões WhatsApp, Ligar e Como chegar (só os que tiverem dado).
+- Serviços em lista simples com uma linha de descrição cada.
+- Se houver nota do Google, mostre exatamente a informada, com o número de avaliações.
+- Onde estamos: endereço + mapa em iframe https://www.google.com/maps?q=NOME+ENDERECO&output=embed (com loading="lazy"); horário em tabela simples.
+- Chamada final curta e rodapé com nome, endereço e telefone.
+- PROIBIDO inventar depoimentos, nomes de clientes, prêmios, anos de experiência, preços, números, fotos ou e-mail. O que não está em DADOS REAIS fica de fora.
+- Português do Brasil, frases curtas, sem exclamação em excesso, focadas em fazer a pessoa chamar no WhatsApp ou ligar.`,
   };
 }
 

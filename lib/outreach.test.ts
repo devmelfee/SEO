@@ -50,3 +50,12 @@ test("etapa e datas de cada passo", async () => {
   assert.equal(stepDates(0, {}, null)[0].date, null);
   assert.equal(cooldownMs(0), 45_000); assert.equal(cooldownMs(1), 90_000);
 });
+
+test("lembrete traz algo novo e se sustenta sozinho; nenhuma mensagem usa travessão", () => {
+  const withSite = buildMessage(lead, 2, { sender: "Ana", siteUrl: "https://app/s/pet" });
+  assert.match(withSite, /Pet Feliz/);
+  assert.match(withSite, /prévia.*https:\/\/app\/s\/pet/);
+  assert.doesNotMatch(withSite, /passando|conseguiu ver/i);
+  assert.match(buildMessage({ ...lead, issues: [{ code: "few_reviews" }] }, 2), /avaliar/);
+  for (const step of [1, 2, 3]) assert.doesNotMatch(buildMessage(lead, step, { siteUrl: "https://x" }), /—/);
+});

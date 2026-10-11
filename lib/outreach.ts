@@ -32,19 +32,31 @@ const pick = <T,>(seed: string, list: T[]): T => {
 const city = (q: string) => q.split(" em ")[1]?.trim() || "sua cidade";
 const niche = (q: string) => q.split(" em ")[0]?.trim().toLowerCase() || "seu segmento";
 
-/** O problema que mais vende, na ordem do que o dono sente primeiro. */
+/**
+ * O problema que mais vende, na ordem do que o dono sente primeiro.
+ * Regras de copy (skill cold-email adaptada ao WhatsApp): uma observação específica e verificável,
+ * o efeito no cliente dele, sem jargão de SEO e sem travessão.
+ */
 export function mainHook(l: OutreachLead, ctx: OutreachCtx = {}): string {
   const codes = new Set(l.issues.map((i) => i.code));
   const where = `"${niche(l.query)} em ${city(l.query)}"`;
-  if (codes.has("no_website")) return `vi que a ${l.name} aparece no Google Maps quando alguém procura ${where}, mas não tem site — quem clica não encontra mais informações e acaba chamando o concorrente`;
-  if (codes.has("social_only")) return `vi que no Google o "site" da ${l.name} leva só para o Instagram/WhatsApp. Isso faz o Google mostrar outras lojas na frente em buscas como ${where}`;
+  if (codes.has("no_website")) return `vi que a ${l.name} aparece no Google Maps quando alguém procura ${where}, mas não tem site. Quem quer ver preço, foto ou serviço antes de ligar acaba clicando no concorrente`;
+  if (codes.has("social_only")) return `vi que o link de site da ${l.name} no Google leva para o Instagram. Na busca por ${where}, o Google costuma pôr na frente quem tem site próprio`;
   if (codes.has("few_reviews") || codes.has("behind_leader")) {
-    const lead = ctx.leaderReviews ? ` enquanto o primeiro colocado tem ${ctx.leaderReviews}` : "";
-    return `vi que a ${l.name} tem ${l.reviews_count} avaliações no Google${lead}. Em buscas como ${where}, isso pesa muito na escolha do cliente`;
+    const lead = ctx.leaderReviews ? `, e o primeiro colocado tem ${ctx.leaderReviews}` : "";
+    return `vi que a ${l.name} tem ${l.reviews_count} avaliações no Google${lead}. Quem procura ${where} costuma escolher pelo número de avaliações`;
   }
-  if (codes.has("low_rating") && l.rating) return `vi que a nota da ${l.name} no Google está em ${String(l.rating).replace(".", ",")}. Dá para melhorar isso respondendo e organizando as avaliações`;
-  if (codes.has("no_hours") || codes.has("no_phone")) return `vi que o perfil da ${l.name} no Google está incompleto (horário/telefone), e isso faz perder clientes que procuram ${where}`;
-  return `fiz uma análise de como a ${l.name} aparece no Google para ${where} e encontrei alguns ajustes simples que trazem mais clientes`;
+  if (codes.has("low_rating") && l.rating) return `vi que a nota da ${l.name} no Google está em ${String(l.rating).replace(".", ",")}. Responder as avaliações e pedir avaliação para os clientes satisfeitos costuma subir essa nota em poucas semanas`;
+  if (codes.has("no_hours") || codes.has("no_phone")) return `vi que o perfil da ${l.name} no Google está sem ${codes.has("no_hours") ? "horário de funcionamento" : "telefone"}. Quem procura ${where} e não vê isso passa para o próximo da lista`;
+  return `olhei como a ${l.name} aparece no Google para ${where} e vi alguns ajustes simples que costumam trazer mais ligações`;
+}
+
+/** O que o lembrete acrescenta: um ângulo novo, nunca "só passando para ver". */
+function secondAngle(l: OutreachLead, ctx: OutreachCtx): string {
+  const codes = new Set(l.issues.map((i) => i.code));
+  if (ctx.siteUrl) return `Deixei pronta uma prévia de como ficaria o site da ${l.name}, com telefone, endereço e botão de WhatsApp: ${ctx.siteUrl}`;
+  if (codes.has("few_reviews") || codes.has("behind_leader")) return `Uma ideia que funciona bem: um link curto para o cliente avaliar a ${l.name} direto no Google, mandado logo depois do atendimento. Posso montar esse link para você`;
+  return `Posso te mandar um print comparando como a ${l.name} aparece no Google com os 3 primeiros da busca por ${niche(l.query)} em ${city(l.query)}`;
 }
 
 export function buildMessage(l: OutreachLead, step: number, ctx: OutreachCtx = {}): string {
@@ -52,22 +64,21 @@ export function buildMessage(l: OutreachLead, step: number, ctx: OutreachCtx = {
   const greet = ctx.contactName
     ? pick(l.place_id + step, [`Olá, ${ctx.contactName}! Tudo bem?`, `Oi, ${ctx.contactName}, tudo bem?`])
     : pick(l.place_id + step, ["Olá! Tudo bem?", "Oi, tudo bem?", "Olá, boa tarde! Tudo certo?"]);
-  const site = ctx.siteUrl ? `\n\nFiz até uma prévia de como poderia ficar o site de vocês: ${ctx.siteUrl}` : "";
   if (step <= 1) {
+    const site = ctx.siteUrl ? `\n\nMontei uma prévia de como poderia ficar o site de vocês: ${ctx.siteUrl}` : "";
     const ask = pick(l.place_id, [
-      "Posso te mandar uma análise rápida, sem compromisso?",
-      "Faz sentido eu te mostrar em 5 minutos o que daria para ajustar?",
-      "Quer que eu te envie o diagnóstico completo? É gratuito.",
+      "Quer que eu te mande o que encontrei? É só responder sim.",
+      "Faz sentido eu te mostrar o que daria para ajustar?",
+      "Posso te mandar os outros pontos que vi? Não tem custo.",
     ]);
     return `${greet} ${me}. Pesquisando ${niche(l.query)} em ${city(l.query)}, ${mainHook(l, ctx)}.${site}\n\n${ask}`;
   }
   if (step === 2) {
-    return pick(l.place_id + "f2", [
-      `Oi! Passando só para ver se você conseguiu olhar minha mensagem sobre a ${l.name} no Google.${ctx.siteUrl ? ` A prévia do site continua aqui: ${ctx.siteUrl}` : ""} Se preferir, te explico por áudio rapidinho.`,
-      `Olá! Conseguiu ver o que te mandei sobre a ${l.name}? São ajustes simples que costumam trazer mais ligações já no primeiro mês.${ctx.siteUrl ? ` Prévia do site: ${ctx.siteUrl}` : ""}`,
-    ]);
+    const hi = ctx.contactName ? `Oi, ${ctx.contactName}!` : "Oi!";
+    return `${hi} ${me}, te escrevi sobre a ${l.name} no Google.\n\n${secondAngle(l, ctx)}.\n\nSe preferir, te explico por áudio em 1 minuto.`;
   }
-  return `Oi! Última mensagem, prometo 🙂 Se em algum momento quiser melhorar como a ${l.name} aparece no Google${ctx.siteUrl ? ` (ou colocar aquele site no ar: ${ctx.siteUrl})` : ""}, é só me chamar. Se não quiser receber mais mensagens, é só responder "parar" que eu não envio mais.`;
+  const hi = ctx.contactName ? `Oi, ${ctx.contactName}!` : "Oi!";
+  return `${hi} Não quero encher sua caixa, então esta é a última mensagem. Se um dia quiser que a ${l.name} apareça melhor no Google${ctx.siteUrl ? ` (a prévia do site fica em ${ctx.siteUrl})` : ""}, é só me chamar aqui. Se preferir não receber mais nada, é só responder "parar".`;
 }
 
 /** Link do WhatsApp com a mensagem pronta, ou null se o telefone não for celular. */
