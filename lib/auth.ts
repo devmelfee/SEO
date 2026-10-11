@@ -21,7 +21,7 @@ type CookieStore = {
 
 export function authClient(cookies: CookieStore) {
   const { url, anonKey } = publicAuthConfig();
-  return createServerClient(url, anonKey, { cookies });
+  return createServerClient(url, anonKey, { cookies, global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) } });
 }
 
 /** Papel do e-mail na equipe, ou null se não tem acesso. Bootstrap: equipe vazia → primeiro vira admin. */
