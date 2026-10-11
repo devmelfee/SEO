@@ -7,3 +7,6 @@ out
 next-env.d.ts
 .vercel
 .DS_Store
+
+# Registro local das rodadas de design (impeccable)
+.impeccable/questions/
