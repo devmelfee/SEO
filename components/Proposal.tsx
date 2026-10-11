@@ -58,8 +58,8 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
     if (!clientId) return;
     api<Loaded>(`/api/proposals?clientId=${clientId}`).then((r) => {
       setLoaded(r); setSaved(r.proposal);
-      // Proposta salva manda; o link do site entra se ela ainda não tinha.
-      setD(r.proposal ? { ...r.proposal.data, siteUrl: r.proposal.data.siteUrl || r.prefill.siteUrl } : r.prefill);
+      // Proposta salva manda; o link do site atual (modelo, IA ou de outro app) tem prioridade sobre o antigo.
+      setD(r.proposal ? { ...r.proposal.data, siteUrl: r.prefill.siteUrl || r.proposal.data.siteUrl } : r.prefill);
     }).catch((e) => setErr(e.message));
   };
   useEffect(load, [clientId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -103,7 +103,8 @@ export function ProposalPanel({ clientId, phone, aiEnabled }: { clientId: string
         <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: 15, display: "flex", justifyContent: "space-between", gap: 8 }}>
           <span>Site de prévia</span><span style={{ fontWeight: 500, fontSize: 13, color: d.siteUrl ? C.green : C.muted }}>{d.siteUrl ? "✓ pronto" : "opcional · criar ▾"}</span></summary>
         <div style={{ marginTop: 12 }}>
-          <SiteBuilder target={loaded.prospectId ? { prospectId: loaded.prospectId } : { clientId }} aiEnabled={aiEnabled} />
+          <SiteBuilder target={loaded.prospectId ? { prospectId: loaded.prospectId } : { clientId }} aiEnabled={aiEnabled}
+            onPublished={(url) => setD((x) => (x ? { ...x, siteUrl: url } : x))} />
           <button type="button" onClick={load} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}`, marginTop: 10, fontSize: 12 })}>↻ Colocar o link do site na proposta</button>
         </div>
       </details>

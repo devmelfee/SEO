@@ -20,6 +20,13 @@ Itens opcionais que ficaram de fora das últimas entregas, para executar depois.
 - [ ] **Fonte do app.** O detector do impeccable aponta Inter como fonte batida. Ela também não é carregada: no celular, cai na fonte do sistema. É opcional escolher uma fonte própria e carregá-la (por exemplo via `next/font`). Mudar a fonte muda o `DESIGN.md`.
 - [x] **Botão de tema claro/escuro**, feito junto com o `DESIGN.md` (`components/ThemeToggle.tsx`).
 
+## Perfil do Google (automação das correções)
+- [ ] **Pedir ao Google o acesso à API do Perfil da Empresa** ("Application for Basic API Access"). Sem a aprovação, a fila funciona só no modo assistido. Passo a passo em `docs/perfil-google.md`.
+- [ ] **Criar a credencial OAuth** e cadastrar `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `GOOGLE_TOKEN_KEY` e `CRON_SECRET` na Vercel.
+- [ ] **Incluir na proposta a autorização** para a agência editar o perfil e publicar em nome do cliente.
+- [ ] **Fotos pela API** (hoje no modo assistido): precisa de envio de arquivo do cliente.
+- [ ] **Domínio do site pela Vercel**: fora do escopo por decisão do dono. O site completo vem de outro app (opção "Link externo").
+
 ## Produto (do ROADMAP)
 - [ ] **Pagamento por Pix** e checkout automático (ver `docs/ROADMAP.md`).
 - [ ] **Depoimentos e casos reais** na landing, assim que existirem clientes com resultado. Nunca inventar.

@@ -1,4 +1,5 @@
 import "server-only";
+import { publicSiteUrl } from "./site";
 import { NextResponse } from "next/server";
 import { db, supabaseConfigured } from "./supabase";
 import { hashKey, keyFromHeaders, type ApiScope } from "./leadApi";
@@ -45,8 +46,8 @@ export async function previewUrls(req: Request, ids: string[]): Promise<Record<s
   const origin = new URL(req.url).origin;
   const out: Record<string, string> = {};
   for (let i = 0; i < ids.length; i += 200) {
-    const { data } = await db().from("sites").select("prospect_id,slug").in("prospect_id", ids.slice(i, i + 200));
-    for (const s of data ?? []) if (s.prospect_id) out[s.prospect_id] = `${origin}/s/${s.slug}`;
+    const { data } = await db().from("sites").select("prospect_id,slug,source,external_url").in("prospect_id", ids.slice(i, i + 200));
+    for (const s of data ?? []) if (s.prospect_id) out[s.prospect_id] = publicSiteUrl(s, origin);
   }
   return out;
 }

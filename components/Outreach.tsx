@@ -35,8 +35,8 @@ export function OutreachComposer({ lead, sender, leaderReviews, onUpdated, onAct
   const toPhone = dm?.phone && whatsappNumber(dm.phone) ? dm.phone : lead.phone;
   useEffect(() => {
     if (!lead.id) return;
-    api<{ site: { slug: string } | null }>(`/api/sites?prospectId=${lead.id}`)
-      .then((r) => r.site && setSiteUrl(`${window.location.origin}/s/${r.site.slug}`)).catch(() => {});
+    api<{ site: { slug: string; url?: string } | null }>(`/api/sites?prospectId=${lead.id}`)
+      .then((r) => r.site && setSiteUrl(r.site.url || `${window.location.origin}/s/${r.site.slug}`)).catch(() => {});
     api<Event[]>(`/api/prospects/${lead.id}/outreach`).then(setEvents).catch(() => {});
   }, [lead.id]);
   // Regera o texto quando muda o passo ou chega o link do site (o usuário pode editar depois).

@@ -1,4 +1,5 @@
 "use client";
+import { GbpPanel } from "./GbpPanel";
 import { ThemeToggle } from "./ThemeToggle";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PHASES, missingFields, phaseNeedsRealData, type FormData, type Phase } from "@/lib/phases";
@@ -323,6 +324,7 @@ export default function SeoApp() {
             )}
             {phase.id === 2 && <DiagnosisSend clientId={clientId} phone={formData.phone} sender={settings.consultant} />}
             {phase.id === 3 && <ProposalPanel clientId={clientId} phone={formData.phone} aiEnabled={!!status?.anthropic} />}
+            {phase.id === 4 && <GbpPanel clientId={clientId} isAdmin={usage?.role === "admin"} aiEnabled={!!status?.anthropic} />}
             {phase.id === 4 && (
               <p style={{ fontSize: 13, color: C.muted, margin: "0 0 14px" }}>
                 ✓ {phase.parts!.filter((x) => results[x.label]?.content.trim()).length} de {phase.parts!.length} entregas prontas.

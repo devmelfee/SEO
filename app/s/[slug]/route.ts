@@ -14,10 +14,13 @@ const CSP = [
 export async function GET(_: Request, { params }: { params: { slug: string } }) {
   const notFound = () => new Response("Página não encontrada.", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } });
   if (!supabaseConfigured() || !/^[a-z0-9-]{1,80}$/.test(params.slug)) return notFound();
-  const { data } = await db().from("sites").select("id,html,views").eq("slug", params.slug).maybeSingle();
+  const { data } = await db().from("sites").select("id,html,views,source,external_url").eq("slug", params.slug).maybeSingle();
   if (!data) return notFound();
   // Contador simples de visitas (para saber se o prospect abriu o link).
   db().from("sites").update({ views: (data.views ?? 0) + 1 }).eq("id", data.id).then(() => {}, () => {});
+  // Site feito em outro app: o link /s/… continua valendo e leva ao endereço real.
+  if (data.source === "externo" && data.external_url) return Response.redirect(data.external_url, 302);
+  if (!data.html) return notFound();
   return new Response(data.html, {
     headers: {
       "Content-Type": "text/html; charset=utf-8",

@@ -279,3 +279,77 @@ do $$ begin
   alter table public.prospects add constraint prospects_contact_status_check
     check (contact_status in ('nao_verificado','confirmado','invalido','sem_whatsapp'));
 exception when duplicate_object then null; end $$;
+
+-- Sites de prévia (/s/slug). Três origens: modelo pronto, IA (ou HTML colado) e link de site feito em outro app.
+create table if not exists public.sites (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  client_id uuid references public.clients(id) on delete cascade,
+  prospect_id uuid references public.prospects(id) on delete cascade,
+  data jsonb not null default '{}'::jsonb,
+  html text,
+  source text not null default 'modelo',
+  views integer not null default 0,
+  created_by text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.sites enable row level security;
+alter table public.sites add column if not exists external_url text;
+alter table public.sites alter column html drop not null;
+
+-- Conexão da agência com o Google (conta Gerente dos perfis dos clientes). O token fica cifrado (AES-GCM).
+create table if not exists public.google_connection (
+  id int primary key default 1 check (id = 1),
+  email text not null default '',
+  refresh_token_enc text not null,
+  scopes text not null default '',
+  connected_by text not null default '',
+  connected_at timestamptz not null default now()
+);
+alter table public.google_connection enable row level security;
+
+-- Perfil do Google ligado a cada cliente.
+alter table public.clients add column if not exists gbp_account text;
+alter table public.clients add column if not exists gbp_location text;
+alter table public.clients add column if not exists gbp_title text;
+
+-- Fila de ações do Perfil do Google: cada sugestão vira uma mudança aplicável (API ou modo assistido).
+create table if not exists public.gbp_actions (
+  id uuid primary key default gen_random_uuid(),
+  client_id uuid not null references public.clients(id) on delete cascade,
+  kind text not null,
+  title text not null default '',
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'pendente',
+  applied_via text,
+  previous jsonb,
+  result jsonb,
+  error text,
+  scheduled_for timestamptz,
+  applied_at timestamptz,
+  applied_by text,
+  created_by text not null default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+do $$ begin
+  alter table public.gbp_actions add constraint gbp_actions_kind_check
+    check (kind in ('descricao','servicos','post','resposta_avaliacao','pergunta','site','foto','horario','outro'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.gbp_actions add constraint gbp_actions_status_check
+    check (status in ('pendente','aplicada','falhou','ignorada'));
+exception when duplicate_object then null; end $$;
+do $$ begin
+  alter table public.gbp_actions add constraint gbp_actions_via_check
+    check (applied_via is null or applied_via in ('api','manual'));
+exception when duplicate_object then null; end $$;
+create index if not exists gbp_actions_client_idx on public.gbp_actions (client_id, created_at desc);
+alter table public.gbp_actions enable row level security;
+
+-- Colunas que existiam no banco de produção mas faltavam neste arquivo (instalação nova quebrava a Proposta).
+alter table public.agency_settings add column if not exists trial_price text default '';
+alter table public.agency_settings add column if not exists monthly_price text default '';
+alter table public.agency_settings add column if not exists client_goal integer;
+alter table public.prospects add column if not exists hours jsonb default '[]'::jsonb;

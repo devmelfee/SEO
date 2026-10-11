@@ -181,3 +181,28 @@ export function extractHtml(text: string): string | null {
   if (!/<html[\s>]/i.test(html) || !/<\/html>/i.test(html)) return null;
   return html.startsWith("<!doctype") || html.startsWith("<!DOCTYPE") ? html : `<!doctype html>\n${html}`;
 }
+
+/** Origem do site: modelo pronto, IA (inclui HTML colado) ou link de site feito em outro app. */
+export type SiteSource = "modelo" | "ia" | "manual" | "externo";
+export type SiteRef = { slug: string; source?: string | null; external_url?: string | null };
+
+/** O link certo para mandar ao cliente: o endereço externo quando o site foi feito em outro app; senão, /s/slug. */
+export function publicSiteUrl(site: SiteRef | null | undefined, origin: string): string {
+  if (!site) return "";
+  if (site.source === "externo" && site.external_url) return site.external_url;
+  return `${origin.replace(/\/$/, "")}/s/${site.slug}`;
+}
+
+const PRIVATE_HOST = /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|0\.|\[?::1\]?$|.*\.local$|.*\.internal$)/i;
+
+/** Valida o link de um site feito em outro app. Aceita sem "https://" e devolve normalizado, ou null. */
+export function normalizeExternalUrl(raw: string): string | null {
+  const v = raw.trim();
+  if (!v || /\s/.test(v)) return null;
+  let u: URL;
+  try { u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : `https://${v}`); } catch { return null; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (u.username || u.password) return null;
+  if (!u.hostname.includes(".") || PRIVATE_HOST.test(u.hostname)) return null;
+  return u.toString();
+}

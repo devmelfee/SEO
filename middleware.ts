@@ -7,7 +7,9 @@ const PUBLIC = ["/login", "/cadastro", "/recuperar", "/auth/callback", "/api/sta
 // A página de apresentação (/apresentacao) e as imagens dela também.
 const isPublic = (p: string) => PUBLIC.includes(p) || /^\/[sp]\/[a-z0-9-]+$/.test(p) || /^\/apresentacao(\/[a-z0-9-]+\.png)?$/.test(p)
   // API pública v1 e a documentação: a chave é validada dentro de cada rota, não por cookie.
-  || /^\/api\/v1(\/.*)?$/.test(p) || p === "/api-docs";
+  || /^\/api\/v1(\/.*)?$/.test(p) || p === "/api-docs"
+  // Cron da Vercel: autenticado por CRON_SECRET dentro da rota.
+  || p === "/api/cron/gbp";
 // Exigem login, mas não fazer parte da equipe (trocar senha, aviso de acesso pendente).
 const LOGGED_ONLY = ["/nova-senha", "/sem-acesso", "/api/logout"];
 

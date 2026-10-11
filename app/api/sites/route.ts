@@ -6,7 +6,7 @@ import { check, fail, handle, ok } from "@/lib/http";
 import { generate } from "@/lib/claude";
 import { aiModel, guard, recordUsage } from "@/lib/usage";
 import { llmCostUsd } from "@/lib/limits";
-import { buildSiteHtml, buildSitePrompt, extractHtml, siteSlug, type SiteData } from "@/lib/site";
+import { buildSiteHtml, buildSitePrompt, extractHtml, normalizeExternalUrl, publicSiteUrl, siteSlug, type SiteData } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -26,7 +26,7 @@ export async function GET(req: Request) {
   try {
     const u = new URL(req.url);
     const t = Target.parse({ prospectId: u.searchParams.get("prospectId") ?? undefined, clientId: u.searchParams.get("clientId") ?? undefined });
-    const site = check(await db().from("sites").select("slug,source,data,updated_at,views")
+    const site = check(await db().from("sites").select("slug,source,external_url,data,updated_at,views")
       .eq(t.prospectId ? "prospect_id" : "client_id", (t.prospectId ?? t.clientId)!).maybeSingle());
 
     const settings = check(await db().from("agency_settings").select("name").limit(1).maybeSingle()) as { name?: string } | null;
@@ -44,22 +44,28 @@ export async function GET(req: Request) {
       rating: prospect?.rating ?? null, reviews: prospect?.reviews_count ?? 0, mapsUrl: prospect?.maps_url || "",
       agency: settings?.name || "",
     };
-    return ok({ site, data: { ...data, ...(site?.data ?? {}) } });
+    const url = publicSiteUrl(site as any, new URL(req.url).origin);
+    return ok({ site: site ? { ...site, url } : null, data: { ...data, ...(site?.data ?? {}) } });
   } catch (e) { return handle(e); }
 }
 
 const Body = z.object({
   target: Target, data: Data,
-  mode: z.enum(["modelo", "ia", "manual"]),
+  mode: z.enum(["modelo", "ia", "manual", "externo"]),
   html: z.string().max(400_000).optional(),
+  externalUrl: z.string().max(500).optional(),
 });
 
-/** Gera (modelo ou IA) ou recebe (colado) o HTML e publica em /s/[slug]. Um site por lead/cliente. */
+/** Gera (modelo ou IA), recebe (colado) o HTML ou registra o link de um site feito em outro app. Um site por lead/cliente. */
 export async function POST(req: Request) {
   try {
-    const { target, data, mode, html: pasted } = Body.parse(await req.json());
-    let html: string | null;
-    if (mode === "modelo") html = buildSiteHtml(data);
+    const { target, data, mode, html: pasted, externalUrl } = Body.parse(await req.json());
+    let html: string | null = null;
+    let external: string | null = null;
+    if (mode === "externo") {
+      external = normalizeExternalUrl(externalUrl ?? "");
+      if (!external) return fail(400, "Link inválido. Use o endereço público do site, por exemplo https://petfeliz.com.br.");
+    } else if (mode === "modelo") html = buildSiteHtml(data);
     else if (mode === "manual") {
       html = extractHtml(pasted ?? "");
       if (!html) return fail(400, "O texto colado não é um HTML completo (precisa ter <html> … </html>).");
@@ -86,9 +92,9 @@ export async function POST(req: Request) {
       const taken = check(await db().from("sites").select("slug").like("slug", `${base}%`)) as { slug: string }[];
       slug = taken.some((t) => t.slug === base) ? `${base}-${taken.length + 1}` : base;
     }
-    const row = { slug, [col]: id, data, html, source: mode, updated_at: now, ...(existing ? {} : { created_by: me?.email ?? "" }) };
+    const row = { slug, [col]: id, data, html, external_url: external, source: mode, updated_at: now, ...(existing ? {} : { created_by: me?.email ?? "" }) };
     check(existing ? await db().from("sites").update(row).eq("id", existing.id) : await db().from("sites").insert(row));
-    return ok({ slug, path: `/s/${slug}`, source: mode });
+    return ok({ slug, path: `/s/${slug}`, source: mode, url: publicSiteUrl({ slug, source: mode, external_url: external }, new URL(req.url).origin) });
   } catch (e) {
     if (e instanceof Anthropic.APIError) return fail(502, `Erro da IA (${e.status ?? "rede"}): ${e.message}`);
     return handle(e);

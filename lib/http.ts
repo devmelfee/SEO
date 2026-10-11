@@ -16,6 +16,11 @@ export function handle(e: unknown) {
   if (e instanceof ZodError) return fail(400, "Dados inválidos: " + e.issues.map((i) => i.path.join(".") + " " + i.message).join("; "));
   if (e instanceof ConfigError) return fail(503, e.message);
   if (e instanceof LimitError) return fail(429, e.message, "limit_reached");
+  // Erros de integração (Google) já trazem o status HTTP e uma mensagem para a pessoa.
+  if (e instanceof Error && typeof (e as { status?: unknown }).status === "number" && e.name !== "APIError") {
+    const st = (e as unknown as { status: number }).status;
+    if (st >= 400 && st < 600) return fail(st, e.message);
+  }
   console.error(e);
   return fail(500, e instanceof Error ? e.message : "Erro interno");
 }

@@ -42,3 +42,14 @@ test("extractHtml aceita bloco de código e recusa lixo", () => {
   assert.match(extractHtml("Aqui:\n```html\n<html><body>x</body></html>\n```")!, /^<!doctype html>/);
   assert.equal(extractHtml("não sei fazer"), null);
 });
+
+test("link externo: normaliza, recusa o que não é site público", async () => {
+  const { normalizeExternalUrl, publicSiteUrl } = await import("./site.ts");
+  assert.equal(normalizeExternalUrl("petfeliz.com.br"), "https://petfeliz.com.br/");
+  assert.equal(normalizeExternalUrl(" https://site.lovable.app/home "), "https://site.lovable.app/home");
+  for (const bad of ["javascript:alert(1)", "ftp://x.com", "http://localhost:3000", "http://192.168.0.1", "https://user:pw@x.com", "não é link", "intranet"])
+    assert.equal(normalizeExternalUrl(bad), null, bad);
+  assert.equal(publicSiteUrl({ slug: "pet", source: "externo", external_url: "https://pet.com.br/" }, "https://app"), "https://pet.com.br/");
+  assert.equal(publicSiteUrl({ slug: "pet", source: "modelo" }, "https://app/"), "https://app/s/pet");
+  assert.equal(publicSiteUrl(null, "https://app"), "");
+});

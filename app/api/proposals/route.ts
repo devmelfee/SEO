@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { publicSiteUrl } from "@/lib/site";
 import { db } from "@/lib/supabase";
 import { currentUser } from "@/lib/session";
 import { check, fail, handle, ok } from "@/lib/http";
@@ -25,14 +26,14 @@ export async function GET(req: Request) {
       ? (check(await db().from("prospects").select("name,reviews_count,rating,website,rank_in_search").eq("query", lead.query)
           .neq("id", lead.id).order("rank_in_search").limit(3)) as any[])
       : [];
-    const siteQ = db().from("sites").select("slug");
-    const site = check(await (lead?.id ? siteQ.or(`client_id.eq.${clientId},prospect_id.eq.${lead.id}`) : siteQ.eq("client_id", clientId)).limit(1)) as { slug: string }[];
+    const siteQ = db().from("sites").select("slug,source,external_url").order("updated_at", { ascending: false });
+    const site = check(await (lead?.id ? siteQ.or(`client_id.eq.${clientId},prospect_id.eq.${lead.id}`) : siteQ.eq("client_id", clientId)).limit(1)) as { slug: string; source: string; external_url: string | null }[];
     const origin = new URL(req.url).origin;
     const prefill = defaultProposal({
       company: client.name, niche: client.vertical, city: client.city,
       agency: settings?.name ?? "", consultant: settings?.consultant ?? "", agencyWhatsapp: settings?.whatsapp ?? "",
       trialPrice: settings?.trial_price ?? "", monthlyPrice: settings?.monthly_price ?? "",
-      siteUrl: site[0] ? `${origin}/s/${site[0].slug}` : "",
+      siteUrl: publicSiteUrl(site[0], origin),
       issues: lead?.issues ?? [],
       self: lead ? { reviews: lead.reviews_count ?? 0, rating: lead.rating, site: !!lead.website } : null,
       rivals: rivals.map((r) => ({ name: r.name, reviews: r.reviews_count ?? 0, rating: r.rating, site: !!r.website })),
