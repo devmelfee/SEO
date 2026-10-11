@@ -68,7 +68,7 @@ export function OutreachComposer({ lead, sender, leaderReviews, onUpdated, onAct
         ))}
       </div>
       {lead.next_followup_at && (
-        <p style={{ fontSize: 12.5, color: isDue(lead.next_followup_at) ? "#DC2626" : C.muted, margin: "0 0 6px" }}>
+        <p style={{ fontSize: 12.5, color: isDue(lead.next_followup_at) ? C.red : C.muted, margin: "0 0 6px" }}>
           {isDue(lead.next_followup_at) ? "Lembrete para hoje" : `Próximo lembrete: ${fmt(lead.next_followup_at)}`}
         </p>
       )}
@@ -80,23 +80,23 @@ export function OutreachComposer({ lead, sender, leaderReviews, onUpdated, onAct
           style={btn(locked ? C.border : "#16A34A", locked ? C.dim : "#fff", { width: "100%", marginTop: 10, minHeight: 46, fontSize: 15 })}>Enviar no WhatsApp</button>
       ) : (
         <div style={{ marginTop: 10 }}>
-          <span style={{ fontSize: 13, color: "#B45309" }}>Telefone fixo: sem WhatsApp. </span>
+          <span style={{ fontSize: 13, color: C.amber }}>Telefone fixo: sem WhatsApp. </span>
           {lead.phone && <a href={`tel:${lead.phone.replace(/\D/g, "")}`} onClick={() => record("enviado", "ligacao")} style={{ ...btn(primary), textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Ligar e registrar</a>}
         </div>
       )}
       {dm?.name && <p style={{ fontSize: 12.5, color: C.muted, margin: "6px 0 0" }}>Para: {dm.name}{dm.role ? ` (${dm.role})` : ""}{toPhone !== lead.phone ? " · celular direto" : ""}</p>}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-        <button type="button" onClick={() => record("respondeu")} style={btn("#fff", C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Respondeu</button>
+        <button type="button" onClick={() => record("respondeu")} style={btn(C.panel, C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Respondeu</button>
         <button type="button" onClick={() => confirm("Marcar como sem interesse? O lead sai da fila e não recebe mais lembretes.") && record("sem_interesse")}
-          style={btn("#fff", C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Sem interesse</button>
-        <button type="button" onClick={async () => setMsg((await copyText(text)) ? "✓ Mensagem copiada." : "⚠ Não deu para copiar.")} style={btn("#fff", C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Copiar</button>
+          style={btn(C.panel, C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Sem interesse</button>
+        <button type="button" onClick={async () => setMsg((await copyText(text)) ? "✓ Mensagem copiada." : "⚠ Não deu para copiar.")} style={btn(C.panel, C.body, { border: `1px solid ${C.border}`, flex: 1 })}>Copiar</button>
       </div>
       <button type="button" onClick={async () => {
         if (!lead.id || !confirm("O WhatsApp disse que este número não tem conta? O lead sai da fila.")) return;
         try { const row = await api<Prospect>(`/api/prospects/${lead.id}`, { method: "PATCH", body: { contact_status: "sem_whatsapp" } }); onUpdated(row); onAction?.("sem_interesse"); setMsg("✓ Marcado: sem WhatsApp."); }
         catch (e) { setMsg(`⚠ ${(e as Error).message}`); }
       }} style={btn("transparent", C.muted, { marginTop: 4, fontSize: 12.5, padding: "4px 0", minHeight: 28 })}>Número não tem WhatsApp</button>
-      {msg && <p role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? "#047857" : C.red, margin: "8px 0 0" }}>{msg}</p>}
+      {msg && <p role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? C.green : C.red, margin: "8px 0 0" }}>{msg}</p>}
 
       {events.length > 0 && (
         <details style={{ marginTop: 10 }}>
@@ -119,7 +119,7 @@ type Stage = "all" | 1 | 2 | 3 | 4;
 const GOAL_KEY = "seo_daily_goal";
 const SEQ_MAX = 40;
 const STAGE_LABEL: Record<1 | 2 | 3 | 4, string> = { 1: "1º contato", 2: "Lembrete 2º dia", 3: "Último lembrete", 4: "Concluídos sem resposta" };
-const STAGE_COLOR: Record<1 | 2 | 3 | 4, string> = { 1: "#2563EB", 2: "#D97706", 3: "#EA580C", 4: "#64748B" };
+const STAGE_COLOR: Record<1 | 2 | 3 | 4, string> = { 1: C.blue, 2: C.amber, 3: C.orange, 4: C.muted };
 const DATE_LABEL: Record<number, string> = { 1: "1º contato", 2: "Lembrete 2º dia", 3: "Último" };
 const day = (d: string) => new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 
@@ -133,7 +133,7 @@ function StepDates({ l }: { l: QLead }) {
       {dates.map((d) => {
         const late = !d.done && d.date && isDue(d.date);
         return (
-          <span key={d.step} style={{ color: d.done ? "#047857" : late ? "#DC2626" : C.muted }}>
+          <span key={d.step} style={{ color: d.done ? C.green : late ? C.red : C.muted }}>
             {DATE_LABEL[d.step]}: <strong>{d.date ? day(d.date) : d.step === 1 ? "hoje" : "—"}</strong>
             {d.done ? " ✓ enviado" : late ? " vencido" : d.date ? " (previsto)" : ""}
           </span>
@@ -232,7 +232,7 @@ export function OutreachQueue({ projectId = "", sender, onUpdated }: { projectId
         </div>
         <div style={{ flex: "1 1 180px", fontSize: 13.5, color: C.body, lineHeight: 1.6 }}>
           <strong>{counts[1].ready}</strong> novos para chamar<br />
-          <strong style={{ color: counts[2].ready + counts[3].ready ? "#DC2626" : C.text }}>{counts[2].ready + counts[3].ready}</strong> lembretes para hoje
+          <strong style={{ color: counts[2].ready + counts[3].ready ? C.red : C.text }}>{counts[2].ready + counts[3].ready}</strong> lembretes para hoje
         </div>
         <details style={{ flex: "0 0 auto" }}>
           <summary style={{ cursor: "pointer", fontSize: 12.5, color: C.muted }}>Meta e projeto</summary>
@@ -255,13 +255,13 @@ export function OutreachQueue({ projectId = "", sender, onUpdated }: { projectId
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
             <strong style={{ fontSize: 14 }}>Sequência {seq.i + 1} de {seq.ids.length}{current ? ` — ${current.name}` : ""}</strong>
             <span style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
-              <button type="button" onClick={advance} disabled={wait > 0} style={btn(primary, "#fff", { fontSize: 12 })}>
+              <button type="button" onClick={advance} disabled={wait > 0} style={btn(primary, C.onAccent, { fontSize: 12 })}>
                 {wait > 0 ? `Próximo em ${wait}s` : seq.i + 1 < seq.ids.length ? "Próximo →" : "Concluir"}</button>
               <button type="button" onClick={() => setSeq(null)} style={btn("transparent", C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>Encerrar</button>
             </span>
           </div>
           {q.sentTodayMine >= goal && (
-            <p style={{ fontSize: 12, color: "#B45309", margin: "0 0 10px" }}>⚠ Você já bateu a meta de hoje ({goal}). Muitas mensagens novas no mesmo dia aumentam o risco de bloqueio do número.</p>
+            <p style={{ fontSize: 12, color: C.amber, margin: "0 0 10px" }}>⚠ Você já bateu a meta de hoje ({goal}). Muitas mensagens novas no mesmo dia aumentam o risco de bloqueio do número.</p>
           )}
           {wait > 0 ? (
             <p style={{ fontSize: 13, color: C.body, margin: 0 }}>✓ Enviada. A próxima libera em <strong>{wait}s</strong> — use o intervalo para responder quem retornou.</p>
@@ -283,13 +283,13 @@ export function OutreachQueue({ projectId = "", sender, onUpdated }: { projectId
           const on = stage === st;
           return (
             <button key={st} type="button" aria-pressed={on} onClick={() => { setStage(st); setSel(new Set()); }}
-              style={btn(on ? "#F0FDFA" : "#fff", on ? C.teal : C.body, { border: `1px solid ${on ? "#99F6E4" : C.border}`, borderRadius: 999, flexShrink: 0 })}>
+              style={btn(on ? C.tealWash : C.panel, on ? C.teal : C.body, { border: `1px solid ${on ? C.tealLine : C.border}`, borderRadius: 999, flexShrink: 0 })}>
               {st === "all" ? "Hoje" : st === 4 ? "Sem resposta" : STAGE_LABEL[st]} · {n}
             </button>
           );
         })}
         <button type="button" aria-pressed={!onlyReady} onClick={() => setOnlyReady(!onlyReady)}
-          style={btn("#fff", C.muted, { border: `1px dashed ${C.border}`, borderRadius: 999, flexShrink: 0 })}>{onlyReady ? "Ver agendados" : "Só os de hoje"}</button>
+          style={btn(C.panel, C.muted, { border: `1px dashed ${C.border}`, borderRadius: 999, flexShrink: 0 })}>{onlyReady ? "Ver agendados" : "Só os de hoje"}</button>
       </div>
 
       {stage !== 4 && selectable.length > 0 && (

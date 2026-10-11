@@ -24,9 +24,9 @@ export function RealDataPanel({ formData, onChange, placesEnabled, clientId }: {
 
   const has = !!formData.realData?.trim();
   return (
-    <div style={{ background: C.panel, border: `1px solid ${has ? "#86EFAC" : "#FDBA74"}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
+    <div style={{ background: C.panel, border: `1px solid ${has ? C.greenLine : C.amberLine}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 8, flexWrap: "wrap" }}>
-        <span style={{ color: has ? "#047857" : "#B45309", fontSize: 14, fontWeight: 600 }}>
+        <span style={{ color: has ? C.green : C.amber, fontSize: 14, fontWeight: 600 }}>
           {has ? "✓ Concorrentes no Google" : "Concorrentes no Google (necessário para o diagnóstico)"}
         </span>
       </div>
@@ -35,13 +35,13 @@ export function RealDataPanel({ formData, onChange, placesEnabled, clientId }: {
           style={{ ...input, flex: 1, minWidth: 200, fontSize: 13 }} />
         <button type="button" onClick={search} disabled={!placesEnabled || state === "loading" || !(query || defaultQuery)}
           title={placesEnabled ? "" : "Configure GOOGLE_PLACES_API_KEY na Vercel"}
-          style={btn(placesEnabled ? "#0F766E" : C.border, placesEnabled ? "#fff" : C.dim,
+          style={btn(placesEnabled ? C.teal : C.border, placesEnabled ? C.onAccent : C.dim,
             { cursor: placesEnabled && state !== "loading" ? "pointer" : "not-allowed" })}>
           {state === "loading" ? "⟳ Buscando…" : "Buscar no Google Maps"}
         </button>
       </div>
       {!placesEnabled && <p style={{ color: C.dim, fontSize: 12, margin: "0 0 8px" }}>Busca automática desligada (falta a chave do Google). Cole os dados à mão abaixo.</p>}
-      {msg && <p style={{ color: state === "error" ? C.red : "#047857", fontSize: 12, margin: "0 0 8px" }}>{msg}</p>}
+      {msg && <p style={{ color: state === "error" ? C.red : C.green, fontSize: 12, margin: "0 0 8px" }}>{msg}</p>}
       <textarea value={formData.realData ?? ""} onChange={(e) => onChange(e.target.value)}
         placeholder={"Cole aqui o que você viu no Google Maps. Ex.:\n1. Concorrente X — categoria: Encanador — 230 avaliações, nota 4,8 — 24h\n2. …"}
         style={{ ...input, minHeight: 130, fontSize: 12.5, lineHeight: 1.6, fontFamily: "ui-monospace, monospace", resize: "vertical" }} />

@@ -50,10 +50,10 @@ export function RequestMore({ u, what, compact }: { u: MyUsage | null; what?: st
 function MeterBar({ m, label: l, unit }: { m: Meter; label: string; unit: string }) {
   if (m.limit === null) return <span style={{ fontSize: 11.5, color: C.muted }}>{l}: <strong style={{ color: C.text }}>{m.used}</strong> {unit} · sem limite</span>;
   const pct = Math.min(100, (100 * m.used) / Math.max(1, m.limit));
-  const color = pct >= 100 ? "#DC2626" : pct >= 70 ? "#D97706" : "#059669";
+  const color = pct >= 100 ? C.red : pct >= 70 ? C.amber : C.green;
   return (
     <span style={{ display: "inline-flex", flexDirection: "column", gap: 3, minWidth: 120 }}>
-      <span style={{ fontSize: 11.5, color: C.muted }}>{l}: <strong style={{ color: pct >= 100 ? "#DC2626" : C.text }}>{m.used}/{m.limit}</strong> {unit}</span>
+      <span style={{ fontSize: 11.5, color: C.muted }}>{l}: <strong style={{ color: pct >= 100 ? C.red : C.text }}>{m.used}/{m.limit}</strong> {unit}</span>
       <span style={{ height: 4, background: C.panel2, borderRadius: 2 }} role="img" aria-label={`${m.used} de ${m.limit}`}>
         <span style={{ display: "block", width: `${pct}%`, height: "100%", background: color, borderRadius: 2 }} />
       </span>
@@ -68,7 +68,7 @@ export function UsageBar({ u }: { u: MyUsage | null }) {
   if (!u || !u.limited) return null;
   const frac = (m: Meter) => (m.limit ? m.used / m.limit : 0);
   const worst = Math.max(...[u.places.window, u.places.week, u.llm.window, u.llm.week].map(frac));
-  const tone = worst >= 1 ? "#B91C1C" : worst >= 0.7 ? "#B45309" : C.muted;
+  const tone = worst >= 1 ? C.red : worst >= 0.7 ? C.amber : C.muted;
   const left = (m: Meters) => {
     const vals = [m.window, m.week].filter((x) => x.limit !== null).map((x) => x.limit! - x.used);
     return vals.length ? Math.max(0, Math.min(...vals)) : "∞";
@@ -76,7 +76,7 @@ export function UsageBar({ u }: { u: MyUsage | null }) {
   return (
     <div style={{ position: "relative" }}>
       <button type="button" onClick={() => setOpen(!open)} aria-expanded={open}
-        style={{ ...btn("#fff", tone, { border: `1px solid ${C.border}`, borderRadius: 999, fontSize: 12.5, minHeight: 34, padding: "6px 12px" }) }}>
+        style={{ ...btn(C.panel, tone, { border: `1px solid ${C.border}`, borderRadius: 999, fontSize: 12.5, minHeight: 34, padding: "6px 12px" }) }}>
         {left(u.places)} buscas · {left(u.llm)} IA restantes
       </button>
       {open && (
@@ -102,9 +102,9 @@ export function LimitBanner({ u }: { u: MyUsage | null }) {
   }, []);
   if (!msg) return null;
   return (
-    <div role="alert" style={{ maxWidth: 1120, margin: "16px auto 0", padding: "12px 16px", background: "#FEF2F2", border: "1px solid #FECACA",
+    <div role="alert" style={{ maxWidth: 1120, margin: "16px auto 0", padding: "12px 16px", background: C.redWash, border: "1px solid var(--red-line)",
       borderRadius: 10, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-      <span style={{ fontSize: 13, color: "#B91C1C", flex: 1, minWidth: 220 }}>⛔ {msg}</span>
+      <span style={{ fontSize: 13, color: C.red, flex: 1, minWidth: 220 }}>⛔ {msg}</span>
       <RequestMore u={u} what={/IA/.test(msg) ? "gerações de IA" : "consultas ao Google"} />
       <button type="button" onClick={() => setMsg("")} style={btn("transparent", C.dim, { border: `1px solid ${C.border}` })}>Fechar</button>
     </div>
@@ -184,11 +184,11 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
   return (
     <Shell title="Controle de gastos" subtitle="Consultas ao Google Places e gerações de IA, por pessoa" onClose={onClose} width={1040}>
       {err && <p style={{ color: C.red, fontSize: 13 }}>⚠ {err}</p>}
-      {flash && <p role="status" style={{ color: "#047857", fontSize: 13 }}>✓ {flash}</p>}
+      {flash && <p role="status" style={{ color: C.green, fontSize: 13 }}>✓ {flash}</p>}
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
         {[[1, "Hoje (24h)"], [7, "7 dias"], [30, "30 dias"], [90, "90 dias"]].map(([d, l]) => (
           <button key={d} type="button" onClick={() => setDays(d as number)}
-            style={btn(days === d ? "#0F766E" : C.panel2, days === d ? "#fff" : C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>{l}</button>
+            style={btn(days === d ? C.teal : C.panel2, days === d ? C.onAccent : C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>{l}</button>
         ))}
         <span style={{ fontSize: 11, color: C.dim, marginLeft: "auto" }}>Custos estimados pela tabela de preços (Google: US$ 0,035 por consulta; IA: por token).</span>
       </div>
@@ -233,7 +233,7 @@ export function UsageModal({ onClose }: { onClose: () => void }) {
                     <button type="button" onClick={() => setEditing(editing === p.email ? null : p.email)} style={btn(C.panel2, C.blue, { border: `1px solid ${C.border}`, fontSize: 12 })}>Limites</button>
                     <button type="button" title="Zera a contagem da janela e da semana"
                       onClick={async () => { try { await patch({ email: p.email, reset: true }); ok(`Contagem de ${p.email} zerada.`); } catch (e) { setErr((e as Error).message); } }}
-                      style={btn(C.panel2, "#047857", { border: `1px solid ${C.border}`, fontSize: 12 })}>Liberar agora</button>
+                      style={btn(C.panel2, C.green, { border: `1px solid ${C.border}`, fontSize: 12 })}>Liberar agora</button>
                   </>}
                   <button type="button" onClick={() => setWho(who === p.email ? "" : p.email)} style={btn(C.panel2, C.dim, { border: `1px solid ${C.border}`, fontSize: 12 })}>
                     {who === p.email ? "Ver todos" : "Buscas"}</button>
@@ -345,7 +345,7 @@ function ModelsAndCosts({ r, rate, onSaved, onError }: { r: Report; rate: number
 
   const cell = (usdV: number, on: boolean) => (
     <td style={{ padding: "7px 8px", textAlign: "right", whiteSpace: "nowrap", fontWeight: on ? 800 : 400, color: on ? C.text : C.body,
-      background: on ? "#CCFBF1" : undefined }}>{reais(usdV)}</td>
+      background: on ? C.tealMist : undefined }}>{reais(usdV)}</td>
   );
 
   return (
@@ -393,7 +393,7 @@ function ModelsAndCosts({ r, rate, onSaved, onError }: { r: Report; rate: number
             <span style={{ fontSize: 12, color: b.m.id === "atual" ? C.text : C.body, fontWeight: b.m.id === "atual" ? 800 : 400 }}>{b.m.tier}</span>
             <span style={{ height: 14, background: C.panel2, borderRadius: 4 }}>
               <span style={{ display: "block", height: "100%", width: `${Math.max(1, (100 * b.usd) / max)}%`, borderRadius: "0 4px 4px 0",
-                background: b.m.id === "atual" ? "#0F766E" : "#115E59" }} />
+                background: b.m.id === "atual" ? C.teal : C.tealDeep }} />
             </span>
             <span style={{ fontSize: 12, textAlign: "right", fontWeight: b.m.id === "atual" ? 800 : 400 }}>{reais(b.usd)}</span>
           </div>

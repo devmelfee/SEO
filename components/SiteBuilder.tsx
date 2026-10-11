@@ -74,7 +74,7 @@ export function SiteBuilder({ target, aiEnabled }: { target: Target; aiEnabled: 
         </button>
         <button type="button" disabled={!valid || !!busy || !aiEnabled} onClick={() => publish("ia")}
           title={aiEnabled ? "" : "Configure ANTHROPIC_API_KEY para gerar com IA"}
-          style={btn(aiEnabled ? "#0F766E" : C.border, aiEnabled ? "#fff" : C.dim)}>
+          style={btn(aiEnabled ? C.teal : C.border, aiEnabled ? C.onAccent : C.dim)}>
           {busy === "ia" ? "A IA está criando (até 1 min)…" : "Gerar com IA"}
         </button>
         <button type="button" disabled={!valid} onClick={async () => { const p = buildSitePrompt(data); ok((await copyText(`${p.system}\n\n${p.prompt}`)) ? "Prompt copiado — cole no Claude.ai" : "Não deu para copiar"); }}
@@ -88,14 +88,14 @@ export function SiteBuilder({ target, aiEnabled }: { target: Target; aiEnabled: 
         <div style={{ marginTop: 10 }}>
           <textarea rows={6} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="Cole aqui o HTML que o Claude.ai gerou (de <!doctype html> até </html>)"
             style={{ ...input, fontFamily: "ui-monospace, monospace", fontSize: 12, resize: "vertical" }} />
-          <button type="button" disabled={!paste.trim() || !!busy} onClick={() => publish("manual", paste)} style={btn(primary, "#fff", { marginTop: 8 })}>
+          <button type="button" disabled={!paste.trim() || !!busy} onClick={() => publish("manual", paste)} style={btn(primary, C.onAccent, { marginTop: 8 })}>
             {busy === "manual" ? "Publicando…" : "Publicar HTML colado"}
           </button>
         </div>
       )}
 
       {err && <p role="alert" style={{ color: C.red, fontSize: 13, marginTop: 10 }}>⚠ {err}</p>}
-      {flash && <p role="status" style={{ color: "#047857", fontSize: 13, marginTop: 10 }}>✓ {flash}</p>}
+      {flash && <p role="status" style={{ color: C.green, fontSize: 13, marginTop: 10 }}>✓ {flash}</p>}
 
       {site && (
         <div style={{ marginTop: 16, background: C.panel2, border: `1px solid ${C.borderBlue}`, borderRadius: 12, padding: 14 }}>

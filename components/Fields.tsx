@@ -14,7 +14,7 @@ export function VerticalPicker({ value, options, onChange }: { value: string; op
           <button key={m} type="button"
             onClick={() => { setForceCustom(m === "custom"); if (m === "select" && !options.includes(value)) onChange(""); }}
             style={{ padding: "5px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "none",
-              background: mode === m ? C.teal : C.panel2, color: mode === m ? "#fff" : C.dim }}>{lbl}</button>
+              background: mode === m ? C.teal : C.panel2, color: mode === m ? C.onAccent : C.dim }}>{lbl}</button>
         ))}
       </div>
       {mode === "select" ? (
@@ -33,7 +33,7 @@ export function VerticalPicker({ value, options, onChange }: { value: string; op
 /** URL: status calculado do valor a cada render (antes ficava preso no primeiro valor). */
 export function UrlField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const status = !value ? "idle" : isValidUrl(value) ? "ok" : "warn";
-  const color = status === "ok" ? C.teal : status === "warn" ? "#B45309" : C.border;
+  const color = status === "ok" ? C.teal : status === "warn" ? C.amber : C.border;
   return (
     <div>
       <div style={{ position: "relative" }}>

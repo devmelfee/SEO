@@ -30,15 +30,15 @@ const STATUS_LABEL: Record<ProspectStatus, string> = {
   novo: "Novo", abordado: "Abordado", respondeu: "Respondeu", proposta: "Proposta enviada", fechado: "Fechado", descartado: "Descartado",
 };
 const STATUS_COLOR: Record<ProspectStatus, string> = {
-  novo: C.blue, abordado: "#D97706", respondeu: "#DB2777", proposta: "#0F766E", fechado: C.green, descartado: C.dim,
+  novo: C.blue, abordado: C.amber, respondeu: C.pink, proposta: C.teal, fechado: C.green, descartado: C.dim,
 };
 
 const chip = { ...input, width: "auto", flexShrink: 0, fontSize: 13, padding: "7px 10px", minHeight: 36, borderRadius: 999, cursor: "pointer", border: `1px solid ${C.border}` } as const;
 // Nota alta = boa oportunidade (cor quente); nota baixa = pouca coisa a vender (cinza).
-export const scoreBg = (s: number) => (s >= 60 ? "#FFF7ED" : s >= 35 ? "#FFFBEB" : "#F1F5F9");
+export const scoreBg = (s: number) => (s >= 60 ? C.amberWash : s >= 35 ? C.amberWash : C.panel2);
 
 export function scoreColor(s: number) {
-  return s >= 60 ? "#C2410C" : s >= 35 ? "#B45309" : "#64748B";
+  return s >= 60 ? C.orange : s >= 35 ? C.amber : C.muted;
 }
 
 /** Texto com os concorrentes da mesma busca, para o {realData} do cliente que nascer deste lead. */
@@ -204,7 +204,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
                 </select>
               </div>
               <button type="button" onClick={search} disabled={!canSearch}
-                style={btn(canSearch ? "#0F766E" : C.border, canSearch ? "#fff" : C.dim, { padding: "12px 22px", fontSize: 14, minHeight: 46, flex: "1 1 120px" })}>
+                style={btn(canSearch ? C.teal : C.border, canSearch ? C.onAccent : C.dim, { padding: "12px 22px", fontSize: 14, minHeight: 46, flex: "1 1 120px" })}>
                 {busy ? "Buscando…" : "Buscar"}
               </button>
             </>
@@ -224,15 +224,15 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
         {mode === "regiao" && (
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
             <button type="button" onClick={regionSearch} disabled={!canRegion}
-              style={btn(canRegion ? "#0F766E" : C.border, canRegion ? "#fff" : C.dim, { padding: "12px 22px", fontSize: 13 })}>
+              style={btn(canRegion ? C.teal : C.border, canRegion ? C.onAccent : C.dim, { padding: "12px 22px", fontSize: 13 })}>
               {regionBusy ? `Analisando ${cityList.length} cidades…` : `Comparar ${cityList.length || ""} cidades`}
             </button>
             <span style={{ fontSize: 12.5, color: C.muted }}>Usa 1 consulta por cidade.</span>
           </div>
         )}
         </>)}
-        {!placesEnabled && <p style={{ color: "#B45309", fontSize: 12, margin: "12px 0 0" }}>⚠ Busca desligada: falta GOOGLE_PLACES_API_KEY (e o faturamento ativo no Google Cloud).</p>}
-        {!supabaseOn && <p style={{ color: "#B45309", fontSize: 12, margin: "8px 0 0" }}>⚠ Supabase desligado: os leads não serão salvos.</p>}
+        {!placesEnabled && <p style={{ color: C.amber, fontSize: 12, margin: "12px 0 0" }}>⚠ Busca desligada: falta GOOGLE_PLACES_API_KEY (e o faturamento ativo no Google Cloud).</p>}
+        {!supabaseOn && <p style={{ color: C.amber, fontSize: 12, margin: "8px 0 0" }}>⚠ Supabase desligado: os leads não serão salvos.</p>}
         {err && <p role="alert" style={{ color: C.red, fontSize: 13, margin: "12px 0 0" }}>⚠ {err}</p>}
       </div>
 
@@ -271,8 +271,8 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
                 const on = !projectFilter && activeQuery === q;
                 return (
                   <button key={q} type="button" aria-pressed={on} onClick={() => { setProjectFilter(""); setActiveQuery(q); load(q, ""); }}
-                    style={{ ...chip, background: on ? "#FFFBEB" : "#fff", borderColor: on ? "#FCD34D" : C.border, color: C.text }}>
-                    <span style={{ color: "#D97706" }}>★</span> {q}
+                    style={{ ...chip, background: on ? C.amberWash : C.panel, borderColor: on ? C.amberLine : C.border, color: C.text }}>
+                    <span style={{ color: C.amber }}>★</span> {q}
                   </button>
                 );
               })}
@@ -288,7 +288,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
             {activeQuery && !projectFilter && (
               <button type="button" aria-pressed={favorites.includes(activeQuery)} onClick={() => toggleFavorite(activeQuery)}
                 title={favorites.includes(activeQuery) ? "Tirar dos favoritos" : "Favoritar esta busca"}
-                style={{ ...chip, color: favorites.includes(activeQuery) ? "#D97706" : C.muted }}>
+                style={{ ...chip, color: favorites.includes(activeQuery) ? C.amber : C.muted }}>
                 {favorites.includes(activeQuery) ? "★ Favorita" : "☆ Favoritar"}
               </button>
             )}
@@ -303,7 +303,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
               {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
             </select>
             <button type="button" aria-pressed={onlyNoSite} onClick={() => setOnlyNoSite(!onlyNoSite)}
-              style={{ ...chip, background: onlyNoSite ? "#F0FDFA" : "#fff", color: onlyNoSite ? C.teal : C.body, borderColor: onlyNoSite ? "#99F6E4" : C.border }}>
+              style={{ ...chip, background: onlyNoSite ? C.tealWash : C.panel, color: onlyNoSite ? C.teal : C.body, borderColor: onlyNoSite ? C.tealLine : C.border }}>
               {onlyNoSite ? "✓ " : ""}Sem site
             </button>
           </div>
@@ -324,7 +324,7 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</div>
                 <div style={{ fontSize: 12.5, color: C.muted, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  ★ {p.rating ?? "–"} ({p.reviews_count}){noOwnSite ? ` · ${p.website ? "só rede social" : "sem site"}` : ""} · <span style={{ color: due ? "#DC2626" : STATUS_COLOR[st] }}>{due ? "lembrete hoje" : STATUS_LABEL[st]}</span>
+                  ★ {p.rating ?? "–"} ({p.reviews_count}){noOwnSite ? ` · ${p.website ? "só rede social" : "sem site"}` : ""} · <span style={{ color: due ? C.red : STATUS_COLOR[st] }}>{due ? "lembrete hoje" : STATUS_LABEL[st]}</span>
                   {(p.contact_status && p.contact_status !== "nao_verificado") || p.decision_maker ? <> · <ContactBadge p={p} /></> : null}
                 </div>
               </div>
@@ -349,12 +349,12 @@ export function Radar({ placesEnabled, supabaseOn, aiEnabled, sender, usage, onC
                     {p.client_id ? "Abrir cliente →" : "Virar cliente →"}
                   </button>
                   {p.id && (
-                    <button type="button" onClick={() => setSiteFor(siteFor === p.id ? null : p.id!)} style={btn("#fff", C.body, { border: `1px solid ${C.border}` })}>
+                    <button type="button" onClick={() => setSiteFor(siteFor === p.id ? null : p.id!)} style={btn(C.panel, C.body, { border: `1px solid ${C.border}` })}>
                       {siteFor === p.id ? "Fechar site" : "Site de prévia"}
                     </button>
                   )}
                   {p.id && (
-                    <button type="button" onClick={() => setCheckFor(checkFor === p.id ? null : p.id!)} style={btn("#fff", C.body, { border: `1px solid ${C.border}` })}>
+                    <button type="button" onClick={() => setCheckFor(checkFor === p.id ? null : p.id!)} style={btn(C.panel, C.body, { border: `1px solid ${C.border}` })}>
                       {checkFor === p.id ? "Fechar validação" : "Validar contato"}
                     </button>
                   )}

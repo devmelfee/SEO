@@ -63,7 +63,7 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
     <div style={{ display: "flex", gap: 12, padding: "12px 0", borderBottom: `1px solid ${C.border}` }}>
       <span style={{ fontSize: 16 }}>{ok ? "" : "⚫"}</span>
       <div>
-        <div style={{ fontWeight: 700, fontSize: 13, color: ok ? "#047857" : C.text }}>{name} {ok ? "— conectado" : "— falta configurar"}</div>
+        <div style={{ fontWeight: 700, fontSize: 13, color: ok ? C.green : C.text }}>{name} {ok ? "— conectado" : "— falta configurar"}</div>
         <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}><code style={{ color: C.blue }}>{env}</code> · {help}</div>
       </div>
     </div>
@@ -74,7 +74,7 @@ export function SettingsModal({ settings, status, onSave, onClose }: {
       footer={tab !== "status" && tab !== "team" && <>
         {err && <span style={{ color: C.red, fontSize: 12, marginRight: "auto", alignSelf: "center" }}>{err}</span>}
         <button type="button" onClick={onClose} style={btn("transparent", C.muted, { border: `1px solid ${C.border}`, fontSize: 13 })}>Cancelar</button>
-        <button type="button" onClick={save} disabled={state === "saving"} style={btn(state === "saving" ? C.border : primary, "#fff", { fontSize: 13, padding: "9px 22px" })}>
+        <button type="button" onClick={save} disabled={state === "saving"} style={btn(state === "saving" ? C.border : primary, C.onAccent, { fontSize: 13, padding: "9px 22px" })}>
           {state === "saved" ? "✓ Salvo!" : state === "saving" ? "Salvando…" : "Salvar"}
         </button>
       </>}>
@@ -173,7 +173,7 @@ export function ClientsModal({ currentId, onOpen, onClose }: { currentId: string
         const sections = r.client_phases?.[0]?.count ?? 0;
         return (
           <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", marginBottom: 8, borderRadius: 10,
-            background: r.id === currentId ? "#F0FDFA" : C.panel2, border: `1px solid ${r.id === currentId ? C.teal : C.border}` }}>
+            background: r.id === currentId ? C.tealWash : C.panel2, border: `1px solid ${r.id === currentId ? C.teal : C.border}` }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name || "(sem nome)"}</div>
               <div style={{ fontSize: 12, color: C.muted }}>
@@ -184,14 +184,14 @@ export function ClientsModal({ currentId, onOpen, onClose }: { currentId: string
             {confirmDel === r.id ? (
               <>
                 <span style={{ color: C.red, fontSize: 12 }}>Apagar tudo?</span>
-                <button type="button" onClick={() => del(r.id)} style={btn("#B91C1C")}>Sim</button>
+                <button type="button" onClick={() => del(r.id)} style={btn(C.red)}>Sim</button>
                 <button type="button" onClick={() => setConfirmDel(null)} style={btn(C.border, C.muted)}>Não</button>
               </>
             ) : (
               <>
                 <button type="button" onClick={() => onOpen(r.id)} disabled={r.id === currentId}
-                  style={btn(r.id === currentId ? C.border : primary, r.id === currentId ? C.muted : "#fff")}>{r.id === currentId ? "Aberto" : "Abrir"}</button>
-                <button type="button" aria-label="Apagar" onClick={() => setConfirmDel(r.id)} style={btn("#FEF2F2", C.red)}></button>
+                  style={btn(r.id === currentId ? C.border : primary, r.id === currentId ? C.muted : C.onAccent)}>{r.id === currentId ? "Aberto" : "Abrir"}</button>
+                <button type="button" aria-label="Apagar" onClick={() => setConfirmDel(r.id)} style={btn(C.redWash, C.red)}></button>
               </>
             )}
           </div>
@@ -255,7 +255,7 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
 
   return (
     <Shell title="Relatório Final" subtitle={`${client} · ${formData.city ?? ""} · ${entries.length} seção(ões)`} onClose={onClose} width={820}>
-      {err && <p style={{ color: C.red, fontSize: 13, background: "#FEF2F2", padding: "8px 12px", borderRadius: 6 }}>⚠ {err}</p>}
+      {err && <p style={{ color: C.red, fontSize: 13, background: C.redWash, padding: "8px 12px", borderRadius: 6 }}>⚠ {err}</p>}
 
       {!report && !summary && !busy && (
         <div style={{ textAlign: "center", padding: "28px 12px" }}>
@@ -263,7 +263,7 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
           <h3 style={{ margin: "0 0 16px", fontSize: 17 }}>Gerar relatório para o cliente + guia de execução</h3>
           {!entries.length && <p style={{ color: C.red, fontSize: 12 }}>⚠ Gere pelo menos 1 seção antes.</p>}
           <button type="button" onClick={generate} disabled={!entries.length}
-            style={btn(entries.length ? primary : C.border, entries.length ? "#fff" : C.dim, { padding: "14px 32px", fontSize: 14, borderRadius: 10 })}>Gerar com IA</button>
+            style={btn(entries.length ? primary : C.border, entries.length ? C.onAccent : C.dim, { padding: "14px 32px", fontSize: 14, borderRadius: 10 })}>Gerar com IA</button>
         </div>
       )}
 
@@ -279,26 +279,26 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
           <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
             {([["client", "Para o cliente"], ["summary", "Guia prático (você)"]] as const).map(([t, l]) => (
               <button key={t} type="button" onClick={() => setTab(t)}
-                style={btn(tab === t ? (t === "client" ? C.teal : "#0F766E") : C.panel2, tab === t ? "#fff" : C.dim, { fontSize: 13 })}>{l}</button>
+                style={btn(tab === t ? C.teal : C.panel2, tab === t ? C.onAccent : C.dim, { fontSize: 13 })}>{l}</button>
             ))}
             <div style={{ marginLeft: "auto", display: "flex", gap: 6 }}>
               <button type="button" disabled={!active} onClick={async () => { if (await copyText(active)) { setCopied(true); setTimeout(() => setCopied(false), 2000); } }}
-                style={btn("#F0FDFA", copied ? "#047857" : C.blue)}>{copied ? "✓ Copiado" : "Copiar"}</button>
+                style={btn(C.tealWash, copied ? C.green : C.blue)}>{copied ? "✓ Copiado" : "Copiar"}</button>
               <button type="button" disabled={!active} onClick={() => downloadTxt(`${slug}-${tab === "client" ? "relatorio-cliente" : "guia-execucao"}.txt`, active)}
-                style={btn("#F0FDFA", C.blue)}>⬇ .txt</button>
+                style={btn(C.tealWash, C.blue)}>⬇ .txt</button>
             </div>
           </div>
           <div style={{ color: C.body, fontSize: 13, lineHeight: 1.85, whiteSpace: "pre-wrap" }}>{active || "Esta parte falhou — use Regenerar."}</div>
 
           <div style={{ marginTop: 28, padding: 18, background: C.panel2, border: `1px solid ${C.border}`, borderRadius: 12, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-            <button type="button" onClick={downloadAll} style={btn(primary, "#fff", { padding: "12px 20px", fontSize: 13 })}>⬇ Baixar tudo (.txt)</button>
+            <button type="button" onClick={downloadAll} style={btn(primary, C.onAccent, { padding: "12px 20px", fontSize: 13 })}>⬇ Baixar tudo (.txt)</button>
             <button type="button" onClick={generate} style={btn("transparent", C.muted, { border: `1px solid ${C.faint}`, padding: "12px 20px", fontSize: 13 })}>↺ Regenerar</button>
             {!confirmReset ? (
-              <button type="button" onClick={() => setConfirmReset(true)} style={btn("#FEF2F2", C.red, { marginLeft: "auto", border: "1px solid #B91C1C", padding: "12px 20px", fontSize: 13 })}>Novo cliente</button>
+              <button type="button" onClick={() => setConfirmReset(true)} style={btn(C.redWash, C.red, { marginLeft: "auto", border: "1px solid #B91C1C", padding: "12px 20px", fontSize: 13 })}>Novo cliente</button>
             ) : (
               <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ color: C.red, fontSize: 12 }}>Começar outro cliente?</span>
-                <button type="button" onClick={() => { onReset(); onClose(); }} style={btn("#B91C1C")}>Sim</button>
+                <button type="button" onClick={() => { onReset(); onClose(); }} style={btn(C.red)}>Sim</button>
                 <button type="button" onClick={() => setConfirmReset(false)} style={btn(C.border, C.muted)}>Não</button>
               </div>
             )}
@@ -367,7 +367,7 @@ function TeamTab() {
             <a href={`https://wa.me/${whatsappNumber(m.phone)}`} target="_blank" rel="noreferrer" title="Abrir WhatsApp" style={{ ...btn("#16A34A", "#fff", { fontSize: 12, padding: "6px 9px" }), textDecoration: "none" }}></a>
           )}
           {isAdmin && m.email !== data.me.email.toLowerCase() && (
-            <button type="button" onClick={() => remove(m.email)} style={btn("#FEF2F2", C.red)}>Remover</button>
+            <button type="button" onClick={() => remove(m.email)} style={btn(C.redWash, C.red)}>Remover</button>
           )}
         </div>
       ))}

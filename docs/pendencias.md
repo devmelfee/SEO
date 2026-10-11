@@ -17,6 +17,9 @@ Itens opcionais que ficaram de fora das últimas entregas, para executar depois.
 - [ ] **Arquivo `.impeccable/design.json`** (complemento do `DESIGN.md` para o painel do modo live). Gerar junto com o item acima.
 - [ ] **Como começar páginas novas** (por imagem ou direto no código). Só se houver gerador de imagens disponível. Hoje é direto no código.
 
+- [ ] **Fonte do app.** O detector do impeccable aponta Inter como fonte batida. Ela também não é carregada: no celular, cai na fonte do sistema. É opcional escolher uma fonte própria e carregá-la (por exemplo via `next/font`). Mudar a fonte muda o `DESIGN.md`.
+- [x] **Botão de tema claro/escuro**, feito junto com o `DESIGN.md` (`components/ThemeToggle.tsx`).
+
 ## Produto (do ROADMAP)
 - [ ] **Pagamento por Pix** e checkout automático (ver `docs/ROADMAP.md`).
 - [ ] **Depoimentos e casos reais** na landing, assim que existirem clientes com resultado. Nunca inventar.

@@ -38,13 +38,13 @@ export function ApiTab() {
       </p>
 
       {fresh && (
-        <div role="status" style={{ background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 10, padding: 14, marginBottom: 14 }}>
+        <div role="status" style={{ background: C.greenWash, border: "1px solid var(--green-line)", borderRadius: 10, padding: 14, marginBottom: 14 }}>
           <strong style={{ fontSize: 14 }}>Chave "{fresh.name}" criada. Copie agora — ela não aparece de novo.</strong>
-          <code style={{ display: "block", wordBreak: "break-all", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, margin: "10px 0", fontSize: 13 }}>{fresh.key}</code>
+          <code style={{ display: "block", wordBreak: "break-all", background: C.panel, border: `1px solid ${C.border}`, borderRadius: 8, padding: 10, margin: "10px 0", fontSize: 13 }}>{fresh.key}</code>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button type="button" onClick={async () => setMsg((await copyText(fresh.key)) ? "Chave copiada." : "Não deu para copiar.")} style={btn(primary)}>Copiar chave</button>
             <button type="button" onClick={async () => setMsg((await copyText(`curl -H "Authorization: Bearer ${fresh.key}" "${origin}/api/v1/leads?limit=5"`)) ? "Exemplo copiado." : "Não deu para copiar.")}
-              style={btn("#fff", C.body, { border: `1px solid ${C.border}` })}>Copiar exemplo (curl)</button>
+              style={btn(C.panel, C.body, { border: `1px solid ${C.border}` })}>Copiar exemplo (curl)</button>
             <button type="button" onClick={() => setFresh(null)} style={btn("transparent", C.muted)}>Já guardei</button>
           </div>
           {msg && <p style={{ fontSize: 12.5, color: C.green, margin: "8px 0 0" }}>✓ {msg}</p>}
@@ -58,7 +58,7 @@ export function ApiTab() {
           <input type="checkbox" checked={write} onChange={(e) => setWrite(e.target.checked)} style={{ marginTop: 3 }} />
           <span>Permitir que a integração atualize status e anotações dos leads <span style={{ color: C.muted }}>(sem marcar: só leitura)</span></span>
         </label>
-        <button type="submit" style={btn(primary, "#fff", { justifySelf: "start" })}>Criar chave</button>
+        <button type="submit" style={btn(primary, C.onAccent, { justifySelf: "start" })}>Criar chave</button>
       </form>
       {err && <p style={{ color: C.red, fontSize: 13 }}>⚠ {err}</p>}
 
@@ -71,7 +71,7 @@ export function ApiTab() {
               <code>{k.prefix}…</code> · criada {day(k.created_at)} · {k.revoked_at ? `revogada ${day(k.revoked_at)}` : k.last_used_at ? `último uso ${day(k.last_used_at)}` : "nunca usada"}
             </div>
           </div>
-          {!k.revoked_at && <button type="button" onClick={() => revoke(k)} style={btn("#FEF2F2", C.red)}>Revogar</button>}
+          {!k.revoked_at && <button type="button" onClick={() => revoke(k)} style={btn(C.redWash, C.red)}>Revogar</button>}
         </div>
       ))}
     </div>

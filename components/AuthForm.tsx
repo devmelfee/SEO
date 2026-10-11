@@ -34,7 +34,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
   if (!url || !anonKey) {
     return (
       <Card title="Login não configurado">
-        <p style={{ color: "#B45309", fontSize: 13, lineHeight: 1.7, margin: 0 }}>
+        <p style={{ color: C.amber, fontSize: 13, lineHeight: 1.7, margin: 0 }}>
           Na Vercel, em <strong>Settings → Environment Variables</strong>, cadastre <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code>
           {" "}(Supabase → Project Settings → API → chave <em>anon / publishable</em>) e faça <strong>Redeploy</strong>.
         </p>
@@ -90,7 +90,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
   return (
     <Card title={TITLES[mode]}>
       {done ? (
-        <p role="status" style={{ color: "#047857", fontSize: 14, lineHeight: 1.6 }}>✓ {done}</p>
+        <p role="status" style={{ color: C.green, fontSize: 14, lineHeight: 1.6 }}>✓ {done}</p>
       ) : (
         <form onSubmit={submit}>
           {showEmail && <Field id="email" label="E-mail">
@@ -108,7 +108,7 @@ export function AuthForm({ mode, url, anonKey, next = "/", initialError = "" }: 
             <input id="pw2" type="password" required autoComplete="new-password" value={password2} onChange={(e) => setPassword2(e.target.value)} style={input} />
           </Field>}
           {err && <p role="alert" style={{ color: C.red, fontSize: 13, margin: "4px 0 0" }}>{err}</p>}
-          <button type="submit" disabled={busy} style={btn(primary, "#fff", { width: "100%", marginTop: 16, padding: "12px 0", fontSize: 14 })}>
+          <button type="submit" disabled={busy} style={btn(primary, C.onAccent, { width: "100%", marginTop: 16, padding: "12px 0", fontSize: 14 })}>
             {busy ? "Aguarde…" : mode === "login" ? "Entrar" : mode === "cadastro" ? "Criar conta" : mode === "recuperar" ? "Enviar link" : "Salvar nova senha"}
           </button>
         </form>

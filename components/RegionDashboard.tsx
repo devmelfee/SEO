@@ -10,7 +10,7 @@ export type RegionResult = {
 export type ProjectLite = { id: string; name: string };
 
 // Magnitude = um matiz só, do claro ao escuro (nada de vermelho/verde de "status" para índice).
-const SEQ = ["#CCFBF1", "#5EEAD4", "#0F766E", "#0F766E", "#0F766E"];
+const SEQ = [C.tealMist, "#5EEAD4", C.teal, C.teal, C.teal];
 const seq = (v: number) => SEQ[Math.min(SEQ.length - 1, Math.floor(v / 20))];
 const pct = (a: number, b: number) => (b ? Math.round((100 * a) / b) : 0);
 
@@ -106,27 +106,27 @@ export function RegionDashboard({ region, projects, onOpenQuery, onAddToProject,
           <h3 className="dash-title">Onde atacar primeiro</h3>
           <p className="dash-sub">Mais para cima = mais empresas sem site · mais para a esquerda = concorrência mais fraca · bolha = leads quentes</p>
           <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Gráfico de dispersão das cidades">
-            <rect x={P.l} y={P.t} width={(W - P.l - P.r) / 2} height={(H - P.t - P.b) / 2} fill="#0F766E" opacity={0.08} />
-            <text x={P.l + 6} y={P.t + 14} fontSize={10} fill="#0F766E">melhor quadrante</text>
+            <rect style={{ fill: C.teal }} x={P.l} y={P.t} width={(W - P.l - P.r) / 2} height={(H - P.t - P.b) / 2} opacity={0.08} />
+            <text style={{ fill: C.teal }} x={P.l + 6} y={P.t + 14} fontSize={10}>melhor quadrante</text>
             {[0, 25, 50, 75, 100].map((t) => (
               <g key={t}>
-                <line x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} stroke={C.border} strokeWidth={1} />
-                <text x={P.l - 6} y={y(t) + 3} fontSize={10} fill={C.muted} textAnchor="end">{t}%</text>
+                <line style={{ stroke: C.border }} x1={P.l} x2={W - P.r} y1={y(t)} y2={y(t)} strokeWidth={1} />
+                <text style={{ fill: C.muted }} x={P.l - 6} y={y(t) + 3} fontSize={10} textAnchor="end">{t}%</text>
               </g>
             ))}
             {[0, 0.25, 0.5, 0.75, 1].map((f) => (
-              <text key={f} x={x(maxX * f)} y={H - P.b + 14} fontSize={10} fill={C.muted} textAnchor="middle">{Math.round(maxX * f)}</text>
+              <text style={{ fill: C.muted }} key={f} x={x(maxX * f)} y={H - P.b + 14} fontSize={10} textAnchor="middle">{Math.round(maxX * f)}</text>
             ))}
-            <text x={(W + P.l) / 2} y={H - 6} fontSize={10} fill={C.muted} textAnchor="middle">média de avaliações dos concorrentes</text>
+            <text style={{ fill: C.muted }} x={(W + P.l) / 2} y={H - 6} fontSize={10} textAnchor="middle">média de avaliações dos concorrentes</text>
             {ok.map((r) => {
               const s = r.summary!; const cx = x(s.avgReviews), cy = y(pct(s.noSite, s.total)); const on = hover === r.query;
               return (
                 <g key={r.query} onMouseEnter={() => setHover(r.query)} onMouseLeave={() => setHover(null)} style={{ cursor: "pointer" }} onClick={() => toggle(r.query)}>
                   <title>{`${r.city}: ${pct(s.noSite, s.total)}% sem site · média ${s.avgReviews} avaliações · ${s.hot} quentes · índice ${s.opportunity}`}</title>
                   <circle cx={cx} cy={cy} r={rad(s.hot) + 8} fill="transparent" />
-                  <circle cx={cx} cy={cy} r={rad(s.hot)} fill={seq(s.opportunity)} fillOpacity={selected.has(r.query) ? 0.95 : 0.55}
-                    stroke={on ? C.text : C.panel} strokeWidth={2} />
-                  <text x={cx} y={cy - rad(s.hot) - 4} fontSize={10.5} fill={on ? C.text : C.body} textAnchor="middle">{r.city}</text>
+                  <circle style={{ fill: seq(s.opportunity), stroke: on ? C.text : C.panel }} cx={cx} cy={cy} r={rad(s.hot)} fillOpacity={selected.has(r.query) ? 0.95 : 0.55}
+                    strokeWidth={2} />
+                  <text style={{ fill: on ? C.text : C.body }} x={cx} y={cy - rad(s.hot) - 4} fontSize={10.5} textAnchor="middle">{r.city}</text>
                 </g>
               );
             })}
@@ -170,10 +170,10 @@ export function RegionDashboard({ region, projects, onOpenQuery, onAddToProject,
             <input aria-label="Nome do novo projeto" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ ...input, width: 240, fontSize: 12, padding: "7px 10px" }} />
           )}
           <button type="button" disabled={busy || !sel.length || (projectId === "__new" && newName.trim().length < 2)} onClick={add}
-            style={btn(sel.length ? primary : C.border, sel.length ? "#fff" : C.dim)}>
+            style={btn(sel.length ? primary : C.border, sel.length ? C.onAccent : C.dim)}>
             {busy ? "Adicionando…" : `Adicionar ${sel.length} cidade(s) · ~${selCount} leads`}
           </button>
-          {msg && <span role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? "#047857" : C.red }}>{msg}</span>}
+          {msg && <span role="status" style={{ fontSize: 12, color: msg.startsWith("✓") ? C.green : C.red }}>{msg}</span>}
         </div>
       </section>
     </div>

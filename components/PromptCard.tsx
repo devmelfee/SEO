@@ -80,10 +80,10 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
 
   const badge =
     state !== "done" ? null
-    : saveStatus === "saving" ? { t: "salvando…", c: "#D97706" }
-    : saveStatus === "error" ? { t: "⚠ não salvou", c: "#DC2626" }
+    : saveStatus === "saving" ? { t: "salvando…", c: C.amber }
+    : saveStatus === "error" ? { t: "⚠ não salvou", c: C.red }
     : saveStatus === "saved" ? { t: "✓ salvo", c: C.green }
-    : dirty ? { t: "✏ editado", c: "#0F766E" }
+    : dirty ? { t: "✏ editado", c: C.teal }
     : { t: "IA", c: C.blue };
 
   return (
@@ -91,7 +91,7 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px",
         borderBottom: `1px solid ${color}20`, background: C.panel2, gap: 8, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "#0F172A", fontSize: 14.5, fontWeight: 600 }}>{part.label}</span>
+          <span style={{ color: C.text, fontSize: 14.5, fontWeight: 600 }}>{part.label}</span>
           {badge && <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 4, color: badge.c, border: `1px solid ${badge.c}40` }}>{badge.t}</span>}
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -102,21 +102,21 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
           )}
           <button type="button" onClick={onGenerateClick} disabled={state === "loading" || !!blocked} title={blocked ?? ""}
             style={btn(state === "loading" || blocked ? C.border : color,
-              state === "loading" || blocked ? C.muted : "#fff", { cursor: state === "loading" || blocked ? "not-allowed" : "pointer" })}>
+              state === "loading" || blocked ? C.muted : C.onAccent, { cursor: state === "loading" || blocked ? "not-allowed" : "pointer" })}>
             {state === "loading" ? "⟳ Gerando…" : state === "done" ? "↺ Regenerar" : "Gerar com IA"}
           </button>
         </div>
       </div>
 
       {blocked && state !== "loading" && (
-        <div style={{ padding: "10px 16px", background: "#FFFBEB", color: "#B45309", fontSize: 12, borderBottom: `1px solid ${color}20` }}>⚠ {blocked}</div>
+        <div style={{ padding: "10px 16px", background: C.amberWash, color: C.amber, fontSize: 12, borderBottom: `1px solid ${color}20` }}>⚠ {blocked}</div>
       )}
 
       {confirmRegen && (
-        <div style={{ padding: "12px 16px", background: "#FFFBEB", borderBottom: `1px solid ${color}20`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ color: "#B45309", fontSize: 12, flex: 1 }}>⚠ Você editou este texto. Regenerar substitui suas edições.</span>
-          <button type="button" onClick={doGenerate} style={btn("#B45309")}>Sim, regenerar</button>
-          <button type="button" onClick={() => setConfirmRegen(false)} style={btn(C.border, "#64748B")}>Cancelar</button>
+        <div style={{ padding: "12px 16px", background: C.amberWash, borderBottom: `1px solid ${color}20`, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+          <span style={{ color: C.amber, fontSize: 12, flex: 1 }}>⚠ Você editou este texto. Regenerar substitui suas edições.</span>
+          <button type="button" onClick={doGenerate} style={btn(C.amber)}>Sim, regenerar</button>
+          <button type="button" onClick={() => setConfirmRegen(false)} style={btn(C.border, C.muted)}>Cancelar</button>
         </div>
       )}
 
@@ -133,7 +133,7 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
       )}
 
       {error && state !== "loading" && (
-        <div style={{ padding: "12px 20px", color: C.red, fontSize: 13, background: "#FEF2F2" }}>⚠ {error}</div>
+        <div style={{ padding: "12px 20px", color: C.red, fontSize: 13, background: C.redWash }}>⚠ {error}</div>
       )}
 
       {state === "done" && (
@@ -146,14 +146,14 @@ export function PromptCard({ part, formData, color, saved, aiEnabled, onGenerate
                 {editing ? "Ver" : "✏Editar"}
               </button>
               {dirty && (
-                <button type="button" onClick={restore} style={btn("#F5F3FF", "#0F766E", { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>↩ Restaurar IA</button>
+                <button type="button" onClick={restore} style={btn(C.panel2, C.teal, { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>↩ Restaurar IA</button>
               )}
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button type="button" onClick={() => downloadTxt(`${slugify(`${formData.clientName ?? ""}-${part.label}`)}.txt`, text)}
-                style={btn("#F0FDFA", C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>⬇ .txt</button>
+                style={btn(C.tealWash, C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 10px" })}>⬇ .txt</button>
               <button type="button" onClick={async () => showFlash((await copyText(text)) ? "text" : "erro")}
-                style={btn(flash === "text" ? "#DCFCE7" : "#F0FDFA", flash === "text" ? "#047857" : C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 12px" })}>
+                style={btn(flash === "text" ? C.greenWash : C.tealWash, flash === "text" ? C.green : C.blue, { fontSize: 11, fontWeight: 600, padding: "4px 12px" })}>
                 {flash === "text" ? "✓ Copiado!" : flash === "erro" ? "Falhou" : "Copiar"}
               </button>
             </div>

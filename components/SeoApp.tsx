@@ -1,4 +1,5 @@
 "use client";
+import { ThemeToggle } from "./ThemeToggle";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PHASES, missingFields, phaseNeedsRealData, type FormData, type Phase } from "@/lib/phases";
 import { api, type Section, type Status } from "@/lib/api";
@@ -104,7 +105,7 @@ export default function SeoApp() {
       dirty.current = false;
       api(`/api/clients/${clientId}`, { method: "PATCH", body: payload() })
         .then(() => flashDb("✓ salvo", C.green))
-        .catch((e) => flashDb(`⚠ ${e.message}`, "#DC2626", true));
+        .catch((e) => flashDb(`⚠ ${e.message}`, C.red, true));
     }, 1200);
     return () => clearTimeout(t);
   }, [formData, completed, clientId, supabaseOn, hydrated]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -112,11 +113,11 @@ export default function SeoApp() {
   const saveSection = async (label: string, content: string, fromAi: boolean) => {
     const id = await ensureClient();
     if (!id) return; // sem banco: fica no rascunho local
-    flashDb("salvando…", "#D97706", true);
+    flashDb("salvando…", C.amber, true);
     try {
       await api(`/api/clients/${id}/phases`, { method: "PUT", body: { label, content, fromAi } });
       flashDb("✓ salvo", C.green);
-    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#DC2626", true); throw e; }
+    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, C.red, true); throw e; }
   };
 
   const onGenerated = async (label: string, text: string) => {
@@ -133,11 +134,11 @@ export default function SeoApp() {
   const markDone = async (idx: number) => {
     if (idx === 0) {
       const miss = missingFields(formData);
-      if (miss.length) { flashDb("⚠ Preencha nome, nicho e cidade", "#DC2626"); return; }
+      if (miss.length) { flashDb("⚠ Preencha nome, nicho e cidade", C.red); return; }
     }
     dirty.current = true;
     setCompleted((p) => (p.includes(idx) ? p : [...p, idx].sort()));
-    if (idx === 0) await ensureClient().catch((e) => flashDb(`⚠ ${e.message}`, "#DC2626", true));
+    if (idx === 0) await ensureClient().catch((e) => flashDb(`⚠ ${e.message}`, C.red, true));
     if (idx < PHASES.length - 1) setActivePhase(idx + 1);
   };
 
@@ -158,7 +159,7 @@ export default function SeoApp() {
     } catch (e) {
       // Cliente apagado no banco: descarta o rascunho órfão em vez de recriar com dados velhos.
       if (/não encontrado/i.test((e as Error).message)) { setClientId(null); setResults({}); }
-      flashDb(`⚠ ${(e as Error).message}`, "#DC2626", true); }
+      flashDb(`⚠ ${(e as Error).message}`, C.red, true); }
   };
 
   /** Lead do Radar → cliente em execução, já com nicho, cidade, site e os concorrentes reais da busca. */
@@ -173,7 +174,7 @@ export default function SeoApp() {
       clientIdRef.current = c.id; setClientId(c.id);
       if (p.id) await api(`/api/prospects/${p.id}`, { method: "PATCH", body: { client_id: c.id } });
       flashDb("✓ lead virou cliente", C.green);
-    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, "#DC2626", true); }
+    } catch (e) { flashDb(`⚠ ${(e as Error).message}`, C.red, true); }
   };
 
   const logout = () => { api("/api/logout", { method: "POST" }).finally(() => (window.location.href = "/login")); };
@@ -215,6 +216,7 @@ export default function SeoApp() {
         </nav>
         <div className="top-actions">
           {usage?.role === "admin" && <button type="button" className="icon-btn desk-only" onClick={() => setModal("usage")}>Gastos</button>}
+          <ThemeToggle />
           <button type="button" className="icon-btn" aria-label="Configurações" title="Configurações" onClick={() => setModal("settings")}>Ajustes</button>
           <button type="button" className="icon-btn desk-only" title="Sair" onClick={logout}>Sair</button>
         </div>
@@ -250,8 +252,8 @@ export default function SeoApp() {
 
       {missingSetup && (
         <div style={{ maxWidth: 1120, margin: "16px auto 0", padding: "0 16px" }}>
-          <button type="button" onClick={() => setModal("settings")} style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "#FFFBEB",
-            border: "1px solid #FCD34D", borderRadius: 10, padding: "12px 16px", color: "#B45309", fontSize: 13 }}>
+          <button type="button" onClick={() => setModal("settings")} style={{ width: "100%", textAlign: "left", cursor: "pointer", background: C.amberWash,
+            border: "1px solid var(--amber-line)", borderRadius: 10, padding: "12px 16px", color: C.amber, fontSize: 13 }}>
             ⚠ Banco desligado (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY): nada está sendo salvo.
             {" "}Clique para ver o que configurar na Vercel.
           </button>
@@ -286,9 +288,9 @@ export default function SeoApp() {
             const active = i === activePhase, done = completed.includes(i);
             return (
               <button key={p.id} type="button" role="tab" aria-selected={active} onClick={() => setActivePhase(i)} className="phase-btn"
-                style={{ background: active ? "#F0FDFA" : "transparent", border: `1px solid ${active ? "#99F6E4" : "transparent"}` }}>
+                style={{ background: active ? C.tealWash : "transparent", border: `1px solid ${active ? C.tealLine : "transparent"}` }}>
                 <span style={{ width: 26, height: 26, borderRadius: "50%", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700,
-                  background: done ? C.green : active ? C.teal : C.panel2, color: done || active ? "#fff" : C.muted }}>
+                  background: done ? C.green : active ? C.teal : C.panel2, color: done || active ? C.onAccent : C.muted }}>
                   {done ? "✓" : i + 1}
                 </span>
                 <span style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
@@ -350,7 +352,7 @@ export default function SeoApp() {
                 style={btn("transparent", C.muted, { border: `1px solid ${C.border}`, padding: "11px 18px", fontSize: 13 })}>← Voltar</button>
             )}
             <button type="button" onClick={() => markDone(activePhase)}
-              style={btn(primary, "#fff", { padding: "11px 26px", fontSize: 14, flex: 1 })}>
+              style={btn(primary, C.onAccent, { padding: "11px 26px", fontSize: 14, flex: 1 })}>
               {activePhase === PHASES.length - 1 ? "Concluir entrega" : "Concluir etapa →"}
             </button>
             {resultCount > 0 && (
@@ -359,12 +361,12 @@ export default function SeoApp() {
           </div>
 
           {completed.length === PHASES.length && (
-            <div style={{ marginTop: 22, background: "#F0FDF4", border: "1px solid #86EFAC", borderRadius: 12, padding: 24, textAlign: "center" }}>
-              <h3 style={{ color: "#047857", margin: "0 0 8px" }}>Cliente concluído</h3>
-              <p style={{ color: "#15803D", margin: "0 0 20px", fontSize: 13 }}>
+            <div style={{ marginTop: 22, background: C.greenWash, border: "1px solid var(--green-line)", borderRadius: 12, padding: 24, textAlign: "center" }}>
+              <h3 style={{ color: C.green, margin: "0 0 8px" }}>Cliente concluído</h3>
+              <p style={{ color: C.green, margin: "0 0 20px", fontSize: 13 }}>
                 {clientLabel} · {formData.city} · {resultCount} seções{clientId ? " · salvo" : ""}
               </p>
-              <button type="button" onClick={() => setModal("report")} style={btn(primary, "#fff", { padding: "12px 24px", fontSize: 14 })}>Ver relatório final</button>
+              <button type="button" onClick={() => setModal("report")} style={btn(primary, C.onAccent, { padding: "12px 24px", fontSize: 14 })}>Ver relatório final</button>
             </div>
           )}
         </main>
@@ -392,13 +394,13 @@ function SetupForm({ phase, formData, onUpdate }: { phase: Phase; formData: Form
         const v = (formData[step.id] as string) ?? "";
         return (
           <div key={step.id}>
-            <label style={label}>{step.label}{step.required && <span style={{ color: "#DC2626", marginLeft: 4 }}>*</span>}</label>
+            <label style={label}>{step.label}{step.required && <span style={{ color: C.red, marginLeft: 4 }}>*</span>}</label>
             {step.type === "vertical" ? <VerticalPicker value={v} options={step.options!} onChange={(x) => onUpdate(step.id, x)} />
               : step.type === "url" ? <UrlField value={v} onChange={(x) => onUpdate(step.id, x)} />
               : step.type === "tel" ? (
                 <>
                   <input type="tel" inputMode="tel" value={v} placeholder={step.placeholder} onChange={(e) => onUpdate(step.id, e.target.value)} style={input} />
-                  {v.trim() && !whatsappNumber(v) && <p style={{ fontSize: 12, color: "#B45309", margin: "6px 0 0" }}>Não parece um celular (DDD + 9 dígitos). Fixo não abre no WhatsApp.</p>}
+                  {v.trim() && !whatsappNumber(v) && <p style={{ fontSize: 12, color: C.amber, margin: "6px 0 0" }}>Não parece um celular (DDD + 9 dígitos). Fixo não abre no WhatsApp.</p>}
                 </>
               )
               : step.type === "select" ? (

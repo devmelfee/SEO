@@ -129,7 +129,7 @@ A paleta é neutra e fria, com um único acento quente de ação. Ela parece pap
 - **Azul de link** (#1D4ED8): só links de texto.
 
 ### Tema escuro (escolha de quem usa)
-O tema escuro troca os mesmos papéis, sem mudar a estrutura. O fundo é **Noite de campo** (#0B1215), os painéis são #111A1F e #16222A e as linhas são #243238. O texto vai em #E6EDF0, #C2CDD3 e #8FA0A8. O acento clareia para #2DD4BF, com texto escuro (#042F2E) sobre ele. Os estados viram verde #34D399, âmbar #FBBF24, vermelho #F87171 e link #93C5FD. A escolha fica salva no navegador. Sem escolha, segue o tema do sistema.
+O tema escuro troca os mesmos papéis, sem mudar a estrutura. O fundo é **Noite de campo** (#0B1215), os painéis são #111A1F e #16222A e as linhas são #243238. O texto vai em #E6EDF0, #C2CDD3 e #8FA0A8. O acento clareia para #2DD4BF, com texto escuro (#042F2E) sobre ele. Os estados viram verde #34D399, âmbar #FBBF24, vermelho #F87171 e link #93C5FD. Também há laranja #FB923C e rosa #F472B6, que no claro são #C2410C e #BE185D (nota alta e status "respondeu"). O botão de sol/lua fica no topo, ao lado de Ajustes (`components/ThemeToggle.tsx`). A escolha fica salva no navegador, e sem escolha segue o tema do sistema. Todas as cores vivem como variáveis em `app/globals.css` (`:root` e `[data-theme="dark"]`), e os componentes usam `C.*` de `components/styles.ts`. **Nunca escreva hex direto num componente**: crie ou use um token.
 
 ### Named Rules
 **A Regra da Cor de Ação.** O verde-azulado marca só ação ou estado ativo, nunca decoração. Se um elemento é verde-azulado, tocar nele faz algo ou ele mostra onde você está.

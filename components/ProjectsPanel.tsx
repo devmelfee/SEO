@@ -9,7 +9,7 @@ export type Project = {
 
 // Etapas do funil em ordem; cores de status reservadas para o andamento (com rótulo ao lado, nunca só a cor).
 const STAGES: [keyof Project["stats"], string, string][] = [
-  ["novo", "Novos", "#2563EB"], ["abordado", "Abordados", "#D97706"], ["respondeu", "Responderam", "#DB2777"], ["proposta", "Proposta", "#0F766E"], ["fechado", "Fechados", "#059669"],
+  ["novo", "Novos", C.blue], ["abordado", "Abordados", C.amber], ["respondeu", "Responderam", C.pink], ["proposta", "Proposta", C.teal], ["fechado", "Fechados", C.green],
 ];
 
 export function ProjectsPanel({ projects, onOpen, onCreate, onDelete }: {
