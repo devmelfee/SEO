@@ -224,8 +224,13 @@ Os cantos são levemente arredondados e a escala é fixa: 8 px para controles (b
 
 ## Superfícies com mundo próprio
 
-### Landing `/apresentacao`
-Usa o mesmo verde-azulado e as mesmas regras, com escala maior: títulos de 32 a 52 px, faixa escura (#0F172A) para o número de prova e chamada final em fundo verde-azulado. Ela fica sempre em tema claro, porque é página de venda. O CSS está em `app/apresentacao/page.tsx`.
+### Landings (`/apresentacao`, `/apresentacao/semana`, `/apresentacao/mapa`, `/aparecer-no-google`)
+O mesmo verde-azulado e as mesmas regras do app, com escala de página de venda. O CSS fica em `components/landing/lp.css`, com tokens próprios no `.lp` e tema sempre claro.
+- **Letras:** títulos em **Bricolage Grotesque**, com corte de largura 95 e espaçamento de −0,02em, como letreiro de comércio de bairro. Texto em **Onest**. As duas fontes são servidas pelo app via `next/font`. Títulos de 34 a 62 px.
+- **Mapa:** é o elemento que aparece em todas as páginas. É um SVG com quadras, avenidas e rio em tons de verde-cinza (#E9EFEE, #DCE5E3, #A7D8D2). Os pinos têm a cor da nota: laranja (#C2410C) para alta, âmbar para média e ardósia para baixa. As empresas são fictícias e isso é sempre dito na página.
+- **Contas:** os números grandes ficam em tinta (#0F172A) para o consultor e em marrom (#7C2D12) para a perda do dono. Toda suposição pode ser editada na tela e vem marcada como estimativa.
+- **Busca simulada:** imita de propósito a tela de resultados do Google (Arial, azul de link do Google). É a única exceção de fonte e cor, para o dono reconhecer a busca dele.
+- **Provas:** prints reais do app com dados de exemplo (`public/apresentacao/*.webp`), em moldura de celular. Resultados de exemplo levam o selo "Exemplo ilustrativo". Depoimentos só entram quando forem reais.
 
 ### Site de prévia (para a empresa cliente)
 Tem outro mundo, porque representa a empresa e não o app:

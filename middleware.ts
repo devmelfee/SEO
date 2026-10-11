@@ -4,8 +4,8 @@ import { authClient, authConfigured, membership } from "@/lib/auth";
 // Páginas e rotas que não exigem login.
 const PUBLIC = ["/login", "/cadastro", "/recuperar", "/auth/callback", "/api/status"];
 // Sites de prévia (/s/…) e propostas (/p/…) são públicos: são os links que vão para o cliente.
-// A página de apresentação (/apresentacao) e as imagens dela também.
-const isPublic = (p: string) => PUBLIC.includes(p) || /^\/[sp]\/[a-z0-9-]+$/.test(p) || /^\/apresentacao(\/[a-z0-9-]+\.png)?$/.test(p)
+// As landings (/apresentacao e versões, /aparecer-no-google) e as imagens delas também.
+const isPublic = (p: string) => PUBLIC.includes(p) || /^\/[sp]\/[a-z0-9-]+$/.test(p) || /^\/apresentacao(\/[a-z0-9-]+(\.(png|webp))?)?$/.test(p) || p === "/aparecer-no-google"
   // API pública v1 e a documentação: a chave é validada dentro de cada rota, não por cookie.
   || /^\/api\/v1(\/.*)?$/.test(p) || p === "/api-docs"
   // Cron da Vercel: autenticado por CRON_SECRET dentro da rota.

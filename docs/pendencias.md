@@ -27,6 +27,12 @@ Itens opcionais que ficaram de fora das últimas entregas, para executar depois.
 - [ ] **Fotos pela API** (hoje no modo assistido): precisa de envio de arquivo do cliente.
 - [ ] **Domínio do site pela Vercel**: fora do escopo por decisão do dono. O site completo vem de outro app (opção "Link externo").
 
+## Landings
+- [ ] **Trocar os exemplos por dados reais** assim que houver: o funil "Um mês de prospecção" (`components/landing/Sections.tsx`), o antes e depois de 90 dias (`app/aparecer-no-google/page.tsx`) e os prints (`public/apresentacao/*.webp`, gerados com dados de exemplo). Depoimentos só quando forem reais.
+- [ ] **Cadastrar o WhatsApp (celular) da agência em Ajustes.** Sem ele, os botões das landings viram "Entrar" e a página do dono não mostra o pedido de diagnóstico.
+- [ ] **Escolher a versão principal por teste A/B:** `/apresentacao` (calculadora), `/apresentacao/semana` (tempo) e `/apresentacao/mapa` (direção). Cada uma pode ir num anúncio diferente.
+- [ ] **Botão "Copiar link do diagnóstico" na Abordagem**, com `?empresa=&nicho=&cidade=` já preenchidos para a página do dono.
+
 ## Produto (do ROADMAP)
 - [ ] **Pagamento por Pix** e checkout automático (ver `docs/ROADMAP.md`).
 - [ ] **Depoimentos e casos reais** na landing, assim que existirem clientes com resultado. Nunca inventar.
