@@ -260,10 +260,19 @@ export function ReportModal({ results, formData, agency, onClose, onReset }: {
       {!report && !summary && !busy && (
         <div style={{ textAlign: "center", padding: "28px 12px" }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}></div>
-          <h3 style={{ margin: "0 0 16px", fontSize: 17 }}>Gerar relatório para o cliente + guia de execução</h3>
+          <h3 style={{ margin: "0 0 8px", fontSize: 17 }}>Relatório para o cliente + guia de execução</h3>
+          {/* As seções já estão prontas: a IA não as refaz, só escreve dois textos NOVOS a partir delas. */}
+          <p style={{ color: C.muted, fontSize: 13, maxWidth: 520, margin: "0 auto 18px", lineHeight: 1.6 }}>
+            As {entries.length} seção(ões) preenchidas já estão prontas e podem ser baixadas agora. A IA é opcional: ela lê essas seções e escreve
+            um resumo executivo para o cliente e um guia semana a semana para você. Nada do que foi preenchido é refeito.
+          </p>
           {!entries.length && <p style={{ color: C.red, fontSize: 12 }}>⚠ Gere pelo menos 1 seção antes.</p>}
-          <button type="button" onClick={generate} disabled={!entries.length}
-            style={btn(entries.length ? primary : C.border, entries.length ? C.onAccent : C.dim, { padding: "14px 32px", fontSize: 14, borderRadius: 10 })}>Gerar com IA</button>
+          <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+            <button type="button" onClick={downloadAll} disabled={!entries.length}
+              style={btn(entries.length ? primary : C.border, entries.length ? C.onAccent : C.dim, { padding: "14px 24px", fontSize: 14, borderRadius: 10 })}>⬇ Baixar seções (.txt)</button>
+            <button type="button" onClick={generate} disabled={!entries.length}
+              style={btn("transparent", entries.length ? C.body : C.dim, { border: `1px solid ${C.border}`, padding: "14px 24px", fontSize: 14, borderRadius: 10 })}>Gerar resumo e guia com IA</button>
+          </div>
         </div>
       )}
 
