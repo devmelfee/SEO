@@ -297,6 +297,10 @@ create table if not exists public.sites (
 alter table public.sites enable row level security;
 alter table public.sites add column if not exists external_url text;
 alter table public.sites alter column html drop not null;
+-- Bancos criados antes do link externo nasceram com uma trava que só aceitava modelo, ia e manual,
+-- e todo "Link externo" falhava ao salvar. Recria a trava com as quatro origens.
+alter table public.sites drop constraint if exists sites_source_check;
+alter table public.sites add constraint sites_source_check check (source in ('modelo','ia','manual','externo'));
 
 -- Conexão da agência com o Google (conta Gerente dos perfis dos clientes). O token fica cifrado (AES-GCM).
 create table if not exists public.google_connection (
